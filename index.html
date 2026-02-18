@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C&D Nail@rt – Art by Tejal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --charcoal: #111114;
+      --panel: #16161a;
+      --card: #1c1c22;
+      --border: #2a2a35;
+      --rose: #c9847a;
+      --rose-light: #e8a89e;
+      --gold: #c9a96e;
+      --gold-light: #e2c99a;
+      --cream: #f5ede4;
+      --muted: #6b6b7a;
+      --text: #e8e0d8;
+      --white: #ffffff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      overflow-x: hidden;
+    }
+
+    /* ── CANVAS BACKGROUND ── */
+    #bg-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none; opacity: 0.55;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--rose); border-radius: 2px; }
+
+    /* ── LOADER ── */
+    #loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--black);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 20px;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    #loader.hidden { opacity: 0; visibility: hidden; }
+    .loader-logo {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 0.2em;
+    }
+    .loader-bar {
+      width: 160px; height: 1px;
+      background: var(--border);
+      position: relative; overflow: hidden;
+    }
+    .loader-bar::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, var(--rose), var(--gold));
+      animation: loadBar 1.4s ease forwards;
+    }
+    @keyframes loadBar { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(180deg, rgba(10,10,10,0.95) 0%, transparent 100%);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(201,132,122,0.08);
+      transition: all 0.3s ease;
+    }
+    nav.scrolled {
+      background: rgba(10,10,10,0.97);
+      border-bottom-color: rgba(201,132,122,0.18);
+    }
+    .nav-brand {
+      display: flex; flex-direction: column;
+      text-decoration: none;
+    }
+    .nav-brand-main {
+      font-family: 'Cinzel', serif;
+      font-size: 1.1rem; font-weight: 700; letter-spacing: 0.15em;
+      background: linear-gradient(135deg, var(--rose-light), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+    .nav-brand-sub {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.7rem; letter-spacing: 0.35em;
+      color: var(--muted); text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+      transition: color 0.3s; position: relative;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: -3px; left: 0; right: 0;
+      height: 1px; background: var(--rose);
+      transform: scaleX(0); transition: transform 0.3s;
+    }
+    .nav-links a:hover { color: var(--rose-light); }
+    .nav-links a:hover::after { transform: scaleX(1); }
+    .admin-btn {
+      font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase;
+      border: 1px solid rgba(201,132,122,0.4);
+      padding: 8px 18px; border-radius: 2px;
+      color: var(--rose); background: transparent;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .admin-btn:hover { background: var(--rose); color: var(--black); }
+    .hamburger { display: none; cursor: pointer; flex-direction: column; gap: 5px; background: none; border: none; }
+    .hamburger span { width: 24px; height: 1px; background: var(--rose); transition: all 0.3s; display: block; }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh; position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .hero-content {
+      text-align: center; padding: 40px 20px;
+      position: relative; z-index: 2;
+    }
+    .hero-eyebrow {
+      font-size: 0.68rem; letter-spacing: 0.5em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 28px;
+      animation: fadeUp 0.8s ease 0.3s both;
+    }
+    .hero-title {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(3rem, 10vw, 7.5rem);
+      line-height: 0.9; font-weight: 700; letter-spacing: -0.01em;
+      margin-bottom: 12px;
+      animation: fadeUp 0.8s ease 0.5s both;
+    }
+    .hero-title span {
+      display: block;
+      background: linear-gradient(135deg, var(--rose-light) 0%, var(--gold) 50%, var(--rose) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-size: 200% 200%;
+      animation: shimmer 4s ease infinite;
+    }
+    .hero-title .amp {
+      font-size: 0.8em; font-style: italic;
+      -webkit-text-fill-color: var(--gold); opacity: 0.7;
+    }
+    @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    .hero-tagline {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      font-style: italic; color: var(--cream); opacity: 0.8;
+      letter-spacing: 0.1em; margin-bottom: 50px;
+      animation: fadeUp 0.8s ease 0.7s both;
+    }
+    .hero-cta {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+      animation: fadeUp 0.8s ease 0.9s both;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      color: var(--black); border: none;
+      padding: 14px 36px; font-family: 'Inter', sans-serif;
+      font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;
+      cursor: pointer; border-radius: 2px;
+      text-decoration: none; display: inline-block;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 4px 30px rgba(201,132,122,0.25);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(201,132,122,0.4); }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(201,132,122,0.5);
+      color: var(--rose-light); padding: 14px 36px;
+      font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;
+      cursor: pointer; border-radius: 2px;
+      text-decoration: none; display: inline-block;
+      transition: all 0.3s;
+    }
+    .btn-outline:hover { border-color: var(--rose); background: rgba(201,132,122,0.08); }
+    .hero-scroll {
+      position: absolute; bottom: 40px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      animation: fadeUp 0.8s ease 1.2s both;
+    }
+    .hero-scroll span {
+      font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted);
+    }
+    .scroll-line { width: 1px; height: 50px; background: linear-gradient(180deg, var(--rose), transparent); animation: scrollPulse 2s ease infinite; }
+    @keyframes scrollPulse { 0%,100%{opacity:0.3;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(1.1)} }
+    .hero-deco {
+      position: absolute; font-family: 'Cinzel', serif;
+      font-size: 18vw; font-weight: 700; letter-spacing: -0.05em;
+      color: transparent; -webkit-text-stroke: 1px rgba(201,132,122,0.04);
+      user-select: none; pointer-events: none; z-index: 0;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      white-space: nowrap;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── SECTION BASE ── */
+    section { position: relative; z-index: 1; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+    .section-header { text-align: center; margin-bottom: 60px; }
+    .section-eyebrow {
+      font-size: 0.65rem; letter-spacing: 0.5em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 14px; display: block;
+    }
+    .section-title {
+      font-family: 'Cinzel', serif; font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 600; letter-spacing: 0.05em;
+      background: linear-gradient(135deg, var(--cream), var(--rose-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .section-line {
+      width: 60px; height: 1px; margin: 20px auto 0;
+      background: linear-gradient(90deg, transparent, var(--rose), transparent);
+    }
+
+    /* ── STATS RIBBON ── */
+    #stats {
+      padding: 30px 0;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .stats-grid {
+      display: flex; justify-content: center; gap: 0; flex-wrap: wrap;
+    }
+    .stat-item {
+      flex: 1; min-width: 160px; max-width: 220px;
+      text-align: center; padding: 20px 30px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-family: 'Cinzel', serif; font-size: 2.2rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+    .stat-label { font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+    /* ── GALLERY ── */
+    #gallery { padding: 100px 0; background: var(--black); }
+    .gallery-filter {
+      display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 50px;
+    }
+    .filter-btn {
+      font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 8px 20px; border-radius: 2px; cursor: pointer;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); transition: all 0.3s;
+    }
+    .filter-btn.active, .filter-btn:hover {
+      border-color: var(--rose); color: var(--rose); background: rgba(201,132,122,0.06);
+    }
+    .gallery-grid {
+      columns: 3; gap: 16px;
+    }
+    @media(max-width:900px) { .gallery-grid { columns: 2; } }
+    @media(max-width:550px) { .gallery-grid { columns: 1; } }
+    .gallery-item {
+      break-inside: avoid; margin-bottom: 16px;
+      position: relative; overflow: hidden;
+      border-radius: 4px; cursor: pointer;
+      border: 1px solid var(--border);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+    .gallery-item:hover { transform: scale(1.02); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    .gallery-item img {
+      width: 100%; display: block;
+      transition: transform 0.6s ease;
+      background: var(--card);
+    }
+    .gallery-item:hover img { transform: scale(1.05); }
+    .gallery-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 50%);
+      opacity: 0; transition: opacity 0.4s;
+      display: flex; align-items: flex-end; padding: 20px;
+    }
+    .gallery-item:hover .gallery-overlay { opacity: 1; }
+    .gallery-info { }
+    .gallery-info h4 {
+      font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 400;
+      color: var(--cream);
+    }
+    .gallery-info p { font-size: 0.68rem; color: var(--rose-light); letter-spacing: 0.1em; margin-top: 2px; }
+    .gallery-empty {
+      text-align: center; padding: 80px 20px;
+      font-family: 'Cormorant Garamond', serif; font-size: 1.1rem;
+      color: var(--muted); font-style: italic;
+      grid-column: 1/-1;
+    }
+    .gallery-loading {
+      text-align: center; padding: 60px; color: var(--muted);
+      font-size: 0.8rem; letter-spacing: 0.2em;
+    }
+
+    /* ── SERVICES ── */
+    #services { padding: 100px 0; background: var(--charcoal); }
+    .services-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .service-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 36px 30px;
+      transition: all 0.4s; position: relative; overflow: hidden;
+    }
+    .service-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--rose), var(--gold));
+      transform: scaleX(0); transition: transform 0.4s; transform-origin: left;
+    }
+    .service-card:hover { border-color: rgba(201,132,122,0.3); transform: translateY(-4px); }
+    .service-card:hover::before { transform: scaleX(1); }
+    .service-icon { font-size: 1.8rem; margin-bottom: 16px; }
+    .service-name {
+      font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 600;
+      color: var(--cream); letter-spacing: 0.05em; margin-bottom: 10px;
+    }
+    .service-desc { font-size: 0.82rem; line-height: 1.7; color: var(--muted); margin-bottom: 20px; }
+    .service-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      border-top: 1px solid var(--border); padding-top: 16px;
+    }
+    .service-price {
+      font-family: 'Cormorant Garamond', serif; font-size: 1.3rem;
+      color: var(--gold); font-weight: 600;
+    }
+    .service-duration { font-size: 0.65rem; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; }
+
+    /* ── ABOUT ── */
+    #about { padding: 100px 0; background: var(--black); }
+    .about-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+    }
+    @media(max-width: 768px) { .about-grid { grid-template-columns: 1fr; gap: 40px; } }
+    .about-visual {
+      position: relative; aspect-ratio: 3/4;
+      background: var(--card); border-radius: 4px;
+      border: 1px solid var(--border); overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .about-monogram {
+      font-family: 'Cinzel', serif; font-size: 6rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      opacity: 0.4;
+    }
+    .about-deco-ring {
+      position: absolute; width: 70%; aspect-ratio: 1;
+      border: 1px solid rgba(201,132,122,0.15); border-radius: 50%;
+      animation: rotateSlow 20s linear infinite;
+    }
+    @keyframes rotateSlow { to { transform: rotate(360deg); } }
+    .about-text {}
+    .about-name {
+      font-family: 'Cinzel', serif; font-size: 2rem; font-weight: 700;
+      color: var(--cream); margin-bottom: 6px;
+    }
+    .about-title {
+      font-family: 'Cormorant Garamond', serif; font-style: italic;
+      color: var(--rose-light); font-size: 1.05rem; margin-bottom: 28px;
+    }
+    .about-bio { font-size: 0.88rem; line-height: 1.9; color: var(--muted); margin-bottom: 20px; }
+    .about-signature {
+      font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-style: italic;
+      color: var(--rose-light); opacity: 0.7; margin-top: 30px;
+    }
+
+    /* ── BOOKING ── */
+    #booking { padding: 100px 0; background: var(--panel); }
+    .booking-wrap {
+      max-width: 650px; margin: 0 auto;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 50px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media(max-width:600px) { .form-row { grid-template-columns: 1fr; } }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 0.65rem; letter-spacing: 0.25em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 2px; padding: 12px 14px;
+      color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.85rem;
+      transition: border-color 0.3s; outline: none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--rose);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-group select option { background: var(--panel); }
+    .form-submit {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      color: var(--black); border: none; border-radius: 2px;
+      font-size: 0.75rem; letter-spacing: 0.25em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.3s; margin-top: 8px;
+    }
+    .form-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+    .form-msg { margin-top: 12px; text-align: center; font-size: 0.8rem; }
+    .form-msg.success { color: var(--gold); }
+    .form-msg.error { color: #e07070; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--charcoal); border-top: 1px solid var(--border);
+      padding: 60px 40px 30px;
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 60px;
+      margin-bottom: 40px;
+    }
+    @media(max-width:768px) { .footer-inner { grid-template-columns: 1fr; gap: 30px; } }
+    .footer-brand-name {
+      font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--rose-light), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .footer-tagline {
+      font-family: 'Cormorant Garamond', serif; font-style: italic;
+      color: var(--muted); font-size: 0.9rem; margin-bottom: 20px;
+    }
+    .footer-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.8; }
+    .footer-col h5 {
+      font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--rose); margin-bottom: 20px;
+    }
+    .footer-col ul { list-style: none; }
+    .footer-col ul li { margin-bottom: 10px; }
+    .footer-col ul li a {
+      font-size: 0.8rem; color: var(--muted); text-decoration: none;
+      transition: color 0.3s;
+    }
+    .footer-col ul li a:hover { color: var(--rose-light); }
+    .footer-col p { font-size: 0.8rem; color: var(--muted); line-height: 1.8; }
+    .footer-bottom {
+      max-width: 1200px; margin: 0 auto;
+      border-top: 1px solid var(--border); padding-top: 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .footer-copy { font-size: 0.72rem; color: var(--muted); }
+    .footer-copy a { color: var(--rose-light); text-decoration: none; }
+
+    /* ── LIGHTBOX ── */
+    #lightbox {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.93); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: all 0.3s;
+    }
+    #lightbox.active { opacity: 1; visibility: visible; }
+    .lightbox-img { max-width: 88vw; max-height: 85vh; object-fit: contain; border-radius: 4px; }
+    .lightbox-close {
+      position: absolute; top: 24px; right: 30px;
+      font-size: 1.6rem; color: var(--muted); cursor: pointer;
+      background: none; border: none; transition: color 0.3s;
+      line-height: 1;
+    }
+    .lightbox-close:hover { color: var(--rose); }
+
+    /* ── MODAL BASE ── */
+    .modal-bg {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.88); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: all 0.3s;
+      padding: 20px;
+    }
+    .modal-bg.active { opacity: 1; visibility: visible; }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 6px; width: 100%; max-width: 440px; padding: 40px;
+      transform: translateY(20px); transition: transform 0.3s;
+    }
+    .modal-bg.active .modal { transform: translateY(0); }
+    .modal-title {
+      font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 600;
+      color: var(--cream); margin-bottom: 6px; letter-spacing: 0.05em;
+    }
+    .modal-sub { font-size: 0.78rem; color: var(--muted); margin-bottom: 28px; }
+    .modal-close-x {
+      position: absolute; top: 14px; right: 18px;
+      background: none; border: none; color: var(--muted); font-size: 1.3rem;
+      cursor: pointer; transition: color 0.3s;
+    }
+    .modal-close-x:hover { color: var(--rose); }
+    .modal { position: relative; }
+
+    /* ── AUTH MODAL ── */
+    #auth-error { font-size: 0.78rem; color: #e07070; margin-top: 10px; display: none; }
+
+    /* ── ADMIN PANEL ── */
+    #admin-panel {
+      position: fixed; inset: 0; z-index: 200;
+      background: var(--black); overflow-y: auto;
+      transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77,0,0.175,1);
+    }
+    #admin-panel.open { transform: translateX(0); }
+    .admin-header {
+      background: var(--charcoal); border-bottom: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .admin-header-brand {
+      font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 600;
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 0.1em;
+    }
+    .admin-user { font-size: 0.72rem; color: var(--muted); margin-right: 16px; }
+    .admin-header-right { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase;
+      border: 1px solid var(--border); padding: 7px 14px; border-radius: 2px;
+      color: var(--muted); background: transparent; cursor: pointer; transition: all 0.3s;
+    }
+    .logout-btn:hover { border-color: var(--rose); color: var(--rose); }
+    .close-admin-btn {
+      font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+      border: 1px solid rgba(201,132,122,0.4); padding: 7px 14px; border-radius: 2px;
+      color: var(--rose); background: transparent; cursor: pointer; transition: all 0.3s;
+    }
+    .close-admin-btn:hover { background: var(--rose); color: var(--black); }
+    .admin-body { max-width: 1100px; margin: 0 auto; padding: 40px; }
+    .admin-tabs {
+      display: flex; gap: 4px; margin-bottom: 36px;
+      border-bottom: 1px solid var(--border); padding-bottom: 0;
+    }
+    .admin-tab {
+      font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 10px 20px; cursor: pointer;
+      border: none; background: transparent; color: var(--muted);
+      border-bottom: 2px solid transparent; transition: all 0.3s;
+      margin-bottom: -1px;
+    }
+    .admin-tab.active { color: var(--rose); border-bottom-color: var(--rose); }
+    .admin-tab:hover:not(.active) { color: var(--text); }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
+    .admin-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 28px; margin-bottom: 20px;
+    }
+    .admin-card-title {
+      font-family: 'Cinzel', serif; font-size: 0.9rem; color: var(--cream);
+      margin-bottom: 20px; letter-spacing: 0.05em;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 4px;
+      padding: 48px 20px; text-align: center; cursor: pointer;
+      transition: all 0.3s; position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--rose); background: rgba(201,132,122,0.04);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 2rem; margin-bottom: 12px; }
+    .upload-label { font-size: 0.82rem; color: var(--muted); }
+    .upload-label strong { color: var(--rose-light); }
+    .upload-meta { font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
+    .upload-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+    @media(max-width:600px) { .upload-fields { grid-template-columns: 1fr; } }
+
+    /* Admin gallery grid */
+    .admin-gallery-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+      gap: 14px; margin-top: 16px;
+    }
+    .admin-gallery-item {
+      position: relative; aspect-ratio: 1; overflow: hidden;
+      border-radius: 4px; border: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .admin-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    .admin-gallery-item .item-actions {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.75); opacity: 0;
+      transition: opacity 0.3s; display: flex;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .admin-gallery-item:hover .item-actions { opacity: 1; }
+    .item-delete-btn {
+      background: rgba(200,80,80,0.85); color: white;
+      border: none; padding: 7px 14px; border-radius: 2px;
+      font-size: 0.7rem; cursor: pointer; transition: background 0.2s;
+    }
+    .item-delete-btn:hover { background: #c85050; }
+    .item-info {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 10px; background: linear-gradient(0deg, rgba(0,0,0,0.85), transparent);
+    }
+    .item-info p { font-size: 0.68rem; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Services admin */
+    .admin-services-list { margin-top: 16px; }
+    .admin-service-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px; border: 1px solid var(--border);
+      border-radius: 4px; margin-bottom: 10px;
+      background: var(--panel); transition: border-color 0.3s;
+    }
+    .admin-service-row:hover { border-color: rgba(201,132,122,0.3); }
+    .admin-service-info { flex: 1; }
+    .admin-service-name { font-size: 0.85rem; color: var(--cream); margin-bottom: 2px; }
+    .admin-service-meta { font-size: 0.72rem; color: var(--muted); }
+    .service-del-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 12px; border-radius: 2px;
+      font-size: 0.68rem; cursor: pointer; transition: all 0.3s; white-space: nowrap;
+    }
+    .service-del-btn:hover { border-color: #e07070; color: #e07070; }
+
+    /* Bookings admin */
+    .bookings-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .bookings-table th {
+      text-align: left; font-size: 0.62rem; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--rose); padding: 10px 14px; border-bottom: 1px solid var(--border);
+      font-weight: 400;
+    }
+    .bookings-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--muted); }
+    .bookings-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .status-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 2px;
+      font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase;
+    }
+    .status-new { background: rgba(201,169,110,0.15); color: var(--gold); }
+    .status-confirmed { background: rgba(80,160,120,0.15); color: #74c4a0; }
+
+    /* Progress */
+    .upload-progress { margin-top: 14px; display: none; }
+    .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--rose), var(--gold));
+      transition: width 0.3s; width: 0%;
+    }
+    .progress-text { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 30px; right: 30px; z-index: 999;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 14px 20px;
+      font-size: 0.8rem; color: var(--text);
+      transform: translateY(20px); opacity: 0;
+      transition: all 0.35s; pointer-events: none;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast .toast-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    }
+    .toast.success .toast-dot { background: var(--gold); }
+    .toast.error .toast-dot { background: #e07070; }
+
+    /* Input style for admin */
+    .admin-input, .admin-select {
+      width: 100%; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 2px; padding: 10px 12px;
+      color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.82rem;
+      outline: none; transition: border-color 0.3s;
+    }
+    .admin-input:focus, .admin-select:focus { border-color: var(--rose); }
+    .admin-select option { background: var(--panel); }
+    .admin-label {
+      display: block; font-size: 0.62rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+    .admin-btn-primary {
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      color: var(--black); border: none; padding: 10px 24px;
+      border-radius: 2px; font-size: 0.72rem; letter-spacing: 0.15em;
+      text-transform: uppercase; cursor: pointer; transition: opacity 0.3s;
+    }
+    .admin-btn-primary:hover { opacity: 0.88; }
+
+    /* Add service form */
+    .add-service-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 14px; }
+    .add-service-form .full { grid-column: 1 / -1; }
+
+    @media(max-width:768px) {
+      nav { padding: 16px 20px; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .nav-links.open { display: flex; flex-direction: column; position: fixed; top: 64px; left: 0; right: 0; background: var(--charcoal); padding: 24px; gap: 20px; border-bottom: 1px solid var(--border); }
+      .container { padding: 0 20px; }
+      #hero { min-height: 95vh; }
+      .admin-body { padding: 20px; }
+      .admin-header { padding: 16px 20px; }
+    }
+    @media(max-width:480px) {
+      .hero-cta { flex-direction: column; align-items: center; }
+      .upload-fields { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">C&D Nail@rt</div>
+  <div class="loader-bar"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="" />
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-bg" id="auth-modal">
+  <div class="modal">
+    <button class="modal-close-x" onclick="closeAuthModal()">✕</button>
+    <div class="modal-title">Admin Access</div>
+    <div class="modal-sub">Sign in with your administrator credentials</div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="auth-email" class="admin-input" placeholder="admin@example.com" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="auth-password" class="admin-input" placeholder="••••••••" />
+    </div>
+    <div id="auth-error">Invalid credentials. Please try again.</div>
+    <button class="admin-btn-primary" style="width:100%;margin-top:20px;padding:14px;" onclick="signIn()">
+      Sign In
+    </button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a class="nav-brand" href="#hero">
+    <span class="nav-brand-main">C&D Nail@rt</span>
+    <span class="nav-brand-sub">Art by Tejal</span>
+  </a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#gallery" onclick="closeMenu()">Gallery</a></li>
+    <li><a href="#services" onclick="closeMenu()">Services</a></li>
+    <li><a href="#about" onclick="closeMenu()">About</a></li>
+    <li><a href="#booking" onclick="closeMenu()">Book Now</a></li>
+    <li><button class="admin-btn" onclick="openAuthModal()">Admin</button></li>
+  </ul>
+  <button class="hamburger" onclick="toggleMenu()" id="hamburger">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-deco">NAIL</div>
+  <div class="hero-content">
+    <p class="hero-eyebrow">✦ Premium Nail Artistry ✦</p>
+    <h1 class="hero-title">
+      <span>C<span class="amp">&</span>D</span>
+      <span>Nail@rt</span>
+    </h1>
+    <p class="hero-tagline">Art by Tejal</p>
+    <div class="hero-cta">
+      <a href="#gallery" class="btn-primary">View Gallery</a>
+      <a href="#booking" class="btn-outline">Book Appointment</a>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats">
+  <div class="stats-grid">
+    <div class="stat-item"><div class="stat-num">500+</div><div class="stat-label">Happy Clients</div></div>
+    <div class="stat-item"><div class="stat-num">5+</div><div class="stat-label">Years Experience</div></div>
+    <div class="stat-item"><div class="stat-num">20+</div><div class="stat-label">Nail Styles</div></div>
+    <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">Hand-Crafted</div></div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section id="gallery">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-eyebrow">✦ Portfolio</span>
+      <h2 class="section-title">Our Artistry</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="gallery-filter" id="gallery-filter">
+      <button class="filter-btn active" data-cat="all" onclick="filterGallery('all',this)">All Work</button>
+      <button class="filter-btn" data-cat="gel" onclick="filterGallery('gel',this)">Gel Nails</button>
+      <button class="filter-btn" data-cat="acrylic" onclick="filterGallery('acrylic',this)">Acrylic</button>
+      <button class="filter-btn" data-cat="nail-art" onclick="filterGallery('nail-art',this)">Nail Art</button>
+      <button class="filter-btn" data-cat="ombre" onclick="filterGallery('ombre',this)">Ombré</button>
+      <button class="filter-btn" data-cat="extensions" onclick="filterGallery('extensions',this)">Extensions</button>
+    </div>
+    <div id="gallery-container">
+      <div class="gallery-loading">Loading gallery…</div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-eyebrow">✦ What We Offer</span>
+      <h2 class="section-title">Services</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="services-grid" id="services-grid">
+      <!-- Default services shown while loading -->
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-visual">
+        <div class="about-deco-ring"></div>
+        <div class="about-monogram">T</div>
+      </div>
+      <div class="about-text">
+        <span class="section-eyebrow" style="text-align:left;display:block;margin-bottom:14px;">✦ The Artist</span>
+        <h2 class="about-name">Tejal</h2>
+        <p class="about-title">Founder & Lead Nail Artist</p>
+        <p class="about-bio">With a passion for precision and an eye for artistry, Tejal has been transforming nails into miniature canvases for over 5 years. Every set is a unique creation — blending technique, creativity, and care.</p>
+        <p class="about-bio">At C&D Nail@rt, we believe your nails are an expression of who you are. From delicate florals to bold geometric patterns, we craft designs that speak your story.</p>
+        <div class="about-signature">Tejal</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOOKING -->
+<section id="booking">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-eyebrow">✦ Reserve Your Spot</span>
+      <h2 class="section-title">Book Appointment</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="booking-wrap">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name</label>
+          <input type="text" id="b-fname" placeholder="Your name" />
+        </div>
+        <div class="form-group">
+          <label>Last Name</label>
+          <input type="text" id="b-lname" placeholder="Last name" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="b-email" placeholder="your@email.com" />
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="b-phone" placeholder="+1 (555) 000-0000" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Service</label>
+          <select id="b-service">
+            <option value="">Select a service</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Preferred Date</label>
+          <input type="date" id="b-date" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Additional Notes</label>
+        <textarea id="b-notes" placeholder="Any special requests or reference images to share…"></textarea>
+      </div>
+      <button class="form-submit" onclick="submitBooking()">Request Appointment</button>
+      <div class="form-msg" id="booking-msg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand-name">C&D Nail@rt</div>
+      <div class="footer-tagline">Art by Tejal</div>
+      <p class="footer-desc">Where every nail is a work of art. Premium nail artistry crafted with passion, precision, and personality.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <ul>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#about">About Tejal</a></li>
+        <li><a href="#booking">Book Now</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Contact</h5>
+      <p>Available by appointment<br/>Mon – Sat: 9am – 7pm<br/>Sun: 10am – 5pm</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© 2025 C&D Nail@rt. All rights reserved.</span>
+    <span class="footer-copy">Crafted with ♥ for <a href="#">Art by Tejal</a></span>
+  </div>
+</footer>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <div class="admin-header">
+    <div class="admin-header-brand">⚙ Admin Dashboard</div>
+    <div class="admin-header-right">
+      <span class="admin-user" id="admin-email-display"></span>
+      <button class="logout-btn" onclick="signOut()">Sign Out</button>
+      <button class="close-admin-btn" onclick="closeAdmin()">✕ Close</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="switchTab('upload',this)">Upload Photos</button>
+      <button class="admin-tab" onclick="switchTab('gallery-manage',this)">Manage Gallery</button>
+      <button class="admin-tab" onclick="switchTab('services-manage',this)">Services</button>
+      <button class="admin-tab" onclick="switchTab('bookings-manage',this)">Bookings</button>
+    </div>
+
+    <!-- UPLOAD TAB -->
+    <div class="admin-section active" id="tab-upload">
+      <div class="admin-card">
+        <div class="admin-card-title">Upload New Photos</div>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="photo-file" accept="image/*" multiple onchange="handleFileSelect(event)" />
+          <div class="upload-icon">📷</div>
+          <div class="upload-label"><strong>Click to upload</strong> or drag & drop</div>
+          <div class="upload-meta">PNG, JPG, WEBP up to 10MB each · Multiple files allowed</div>
+        </div>
+        <div class="upload-fields">
+          <div>
+            <label class="admin-label">Photo Title</label>
+            <input class="admin-input" id="photo-title" placeholder="e.g. French Ombré Set" />
+          </div>
+          <div>
+            <label class="admin-label">Category</label>
+            <select class="admin-select" id="photo-category">
+              <option value="gel">Gel Nails</option>
+              <option value="acrylic">Acrylic</option>
+              <option value="nail-art">Nail Art</option>
+              <option value="ombre">Ombré</option>
+              <option value="extensions">Extensions</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="admin-label">Description (optional)</label>
+            <input class="admin-input" id="photo-desc" placeholder="Short description…" />
+          </div>
+        </div>
+        <div class="upload-progress" id="upload-progress">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <div class="progress-text" id="progress-text">Uploading…</div>
+        </div>
+        <div id="selected-files" style="margin-top:12px;font-size:0.78rem;color:var(--muted);"></div>
+        <button class="admin-btn-primary" style="margin-top:20px;width:100%;padding:14px;" onclick="uploadPhotos()">
+          Upload to Gallery
+        </button>
+      </div>
+    </div>
+
+    <!-- GALLERY MANAGE TAB -->
+    <div class="admin-section" id="tab-gallery-manage">
+      <div class="admin-card">
+        <div class="admin-card-title">Gallery Photos</div>
+        <div class="admin-gallery-grid" id="admin-gallery-grid">
+          <div style="color:var(--muted);font-size:0.8rem;padding:20px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVICES TAB -->
+    <div class="admin-section" id="tab-services-manage">
+      <div class="admin-card">
+        <div class="admin-card-title">Add New Service</div>
+        <div class="add-service-form">
+          <div>
+            <label class="admin-label">Service Name</label>
+            <input class="admin-input" id="svc-name" placeholder="e.g. Gel Manicure" />
+          </div>
+          <div>
+            <label class="admin-label">Price (e.g. $45)</label>
+            <input class="admin-input" id="svc-price" placeholder="$45" />
+          </div>
+          <div>
+            <label class="admin-label">Duration (e.g. 60 min)</label>
+            <input class="admin-input" id="svc-duration" placeholder="60 min" />
+          </div>
+          <div>
+            <label class="admin-label">Icon (emoji)</label>
+            <input class="admin-input" id="svc-icon" placeholder="💅" />
+          </div>
+          <div class="full">
+            <label class="admin-label">Description</label>
+            <input class="admin-input" id="svc-desc" placeholder="Service description…" />
+          </div>
+          <div class="full">
+            <button class="admin-btn-primary" onclick="addService()">Add Service</button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-card">
+        <div class="admin-card-title">Current Services</div>
+        <div class="admin-services-list" id="admin-services-list">
+          <div style="color:var(--muted);font-size:0.8rem;padding:10px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOOKINGS TAB -->
+    <div class="admin-section" id="tab-bookings-manage">
+      <div class="admin-card">
+        <div class="admin-card-title">Appointment Requests</div>
+        <div style="overflow-x:auto;">
+          <table class="bookings-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Phone</th>
+                <th>Service</th><th>Date</th><th>Notes</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  SUPABASE CONFIG
+// ─────────────────────────────────────────────
+const SUPABASE_URL  = 'https://sctmpxejzujxsyucuikg.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjdG1weGVqenVqeHN5dWN1aWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMzExMzIsImV4cCI6MjA4NjcwNzEzMn0.19ahE4x_1cpOzkLqAf-0jYaYYu9ZjZBPBomCCqYQSsM';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const BUCKET = 'nail-art-photos';
+
+// ─────────────────────────────────────────────
+//  BACKGROUND CANVAS – FLOATING PETALS
+// ─────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+  function Particle() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.size = Math.random() * 3 + 1;
+    this.speed = Math.random() * 0.3 + 0.05;
+    this.opacity = Math.random() * 0.3 + 0.05;
+    this.drift = (Math.random() - 0.5) * 0.3;
+    this.color = Math.random() > 0.5 ? '#c9847a' : '#c9a96e';
+  }
+  Particle.prototype.update = function() {
+    this.y -= this.speed;
+    this.x += this.drift;
+    if (this.y < -10) { this.y = H + 10; this.x = Math.random() * W; }
+  };
+  Particle.prototype.draw = function() {
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  for (let i = 0; i < 70; i++) particles.push(new Particle());
+  function animate() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+
+// ─────────────────────────────────────────────
+//  LOADER
+// ─────────────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('loader').classList.add('hidden'), 1500);
+});
+
+// ─────────────────────────────────────────────
+//  NAV SCROLL + MOBILE
+// ─────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 60);
+});
+function toggleMenu() {
+  document.getElementById('nav-links').classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('nav-links').classList.remove('open');
+}
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.className = `toast ${type}`;
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ─────────────────────────────────────────────
+//  AUTH
+// ─────────────────────────────────────────────
+function openAuthModal() {
+  document.getElementById('auth-modal').classList.add('active');
+}
+function closeAuthModal() {
+  document.getElementById('auth-modal').classList.remove('active');
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function signIn() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  document.getElementById('auth-error').style.display = 'none';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    document.getElementById('auth-error').style.display = 'block';
+    return;
+  }
+  closeAuthModal();
+  openAdmin(data.user.email);
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  closeAdmin();
+  showToast('Signed out successfully.');
+}
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user && document.getElementById('admin-panel').classList.contains('open')) {
+    document.getElementById('admin-email-display').textContent = session.user.email;
+  }
+});
+
+// ─────────────────────────────────────────────
+//  ADMIN PANEL
+// ─────────────────────────────────────────────
+function openAdmin(email) {
+  document.getElementById('admin-email-display').textContent = email || '';
+  document.getElementById('admin-panel').classList.add('open');
+  loadAdminGallery();
+  loadAdminServices();
+  loadBookings();
+}
+function closeAdmin() {
+  document.getElementById('admin-panel').classList.remove('open');
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tabId).classList.add('active');
+  if (tabId === 'gallery-manage') loadAdminGallery();
+  if (tabId === 'services-manage') loadAdminServices();
+  if (tabId === 'bookings-manage') loadBookings();
+}
+
+// ─────────────────────────────────────────────
+//  GALLERY – CLIENT
+// ─────────────────────────────────────────────
+let allPhotos = [], currentCat = 'all';
+
+async function loadGallery() {
+  const { data, error } = await sb.from('gallery').select('*').order('created_at', { ascending: false });
+  if (error) { renderGallery([]); return; }
+  allPhotos = data || [];
+  renderGallery(allPhotos);
+  populateServiceDropdown();
+}
+
+function renderGallery(photos) {
+  const c = document.getElementById('gallery-container');
+  if (!photos.length) {
+    c.innerHTML = `<div class="gallery-empty">No photos yet — check back soon ✨</div>`;
+    return;
+  }
+  const filtered = currentCat === 'all' ? photos : photos.filter(p => p.category === currentCat);
+  if (!filtered.length) {
+    c.innerHTML = `<div class="gallery-empty">No photos in this category yet.</div>`;
+    return;
+  }
+  c.innerHTML = `<div class="gallery-grid">${filtered.map(p => `
+    <div class="gallery-item" onclick="openLightbox('${escHtml(p.image_url)}')">
+      <img src="${escHtml(p.image_url)}" alt="${escHtml(p.title || 'Nail Art')}" loading="lazy" />
+      <div class="gallery-overlay">
+        <div class="gallery-info">
+          <h4>${escHtml(p.title || 'Nail Art')}</h4>
+          ${p.category ? `<p>${escHtml(categoryLabel(p.category))}</p>` : ''}
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function filterGallery(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGallery(allPhotos);
+}
+
+function categoryLabel(cat) {
+  const map = { gel:'Gel Nails', acrylic:'Acrylic', 'nail-art':'Nail Art', ombre:'Ombré', extensions:'Extensions', other:'Other' };
+  return map[cat] || cat;
+}
+
+// Real-time gallery subscription
+sb.channel('gallery-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery' }, () => {
+    loadGallery();
+    loadAdminGallery();
+  }).subscribe();
+
+// ─────────────────────────────────────────────
+//  LIGHTBOX
+// ─────────────────────────────────────────────
+function openLightbox(url) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.getElementById('lightbox').addEventListener('click', function(e) {
+  if (e.target === this) closeLightbox();
+});
+
+// ─────────────────────────────────────────────
+//  SERVICES – CLIENT
+// ─────────────────────────────────────────────
+const defaultServices = [
+  { id:'d1', icon:'💅', name:'Classic Manicure', description:'Shaping, cuticle care, and a flawless polish application for a clean, timeless look.', price:'$25', duration:'30 min' },
+  { id:'d2', icon:'✨', name:'Gel Manicure', description:'Long-lasting gel polish that stays chip-free for up to 3 weeks with a high-gloss finish.', price:'$40', duration:'45 min' },
+  { id:'d3', icon:'🎨', name:'Nail Art Design', description:'Custom hand-painted designs, florals, geometric patterns and artistic creations — your vision realized.', price:'From $55', duration:'60–90 min' },
+  { id:'d4', icon:'💎', name:'Acrylic Extensions', description:'Durable acrylic extensions in your desired length and shape, finished with your choice of colour.', price:'$65', duration:'75 min' },
+  { id:'d5', icon:'🌸', name:'Ombré / Dip Nails', description:'Smooth gradient ombré nails using premium dip powder for a salon-quality fade that lasts.', price:'$50', duration:'60 min' },
+  { id:'d6', icon:'🪻', name:'Full Set with Art', description:'Complete new set of nails with a custom nail art design of your choice from our lookbook.', price:'$85', duration:'90 min' },
+];
+
+async function loadServices() {
+  const { data } = await sb.from('services').select('*').order('created_at', { ascending: true });
+  const services = (data && data.length) ? data : defaultServices;
+  renderServices(services);
+  populateServiceDropdown(services);
+}
+
+function renderServices(services) {
+  document.getElementById('services-grid').innerHTML = services.map(s => `
+    <div class="service-card">
+      <div class="service-icon">${escHtml(s.icon || '💅')}</div>
+      <div class="service-name">${escHtml(s.name)}</div>
+      <div class="service-desc">${escHtml(s.description || '')}</div>
+      <div class="service-meta">
+        <span class="service-price">${escHtml(s.price || '')}</span>
+        <span class="service-duration">${escHtml(s.duration || '')}</span>
+      </div>
+    </div>`).join('');
+}
+
+function populateServiceDropdown(services) {
+  const sel = document.getElementById('b-service');
+  const current = sel.value;
+  const opts = services || defaultServices;
+  sel.innerHTML = `<option value="">Select a service</option>` +
+    opts.map(s => `<option value="${escHtml(s.name)}" ${s.name === current ? 'selected':''}>${escHtml(s.name)} – ${escHtml(s.price || '')}</option>`).join('');
+}
+
+sb.channel('services-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+    loadServices();
+    loadAdminServices();
+  }).subscribe();
+
+// ─────────────────────────────────────────────
+//  UPLOAD PHOTOS
+// ─────────────────────────────────────────────
+let selectedFiles = [];
+
+function handleFileSelect(e) {
+  selectedFiles = Array.from(e.target.files);
+  const el = document.getElementById('selected-files');
+  if (!selectedFiles.length) { el.textContent = ''; return; }
+  el.textContent = `${selectedFiles.length} file(s) selected: ` + selectedFiles.map(f => f.name).join(', ');
+}
+
+const uploadZone = document.getElementById('upload-zone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('dragover');
+  selectedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  document.getElementById('selected-files').textContent = `${selectedFiles.length} file(s) selected: ` + selectedFiles.map(f => f.name).join(', ');
+});
+
+async function uploadPhotos() {
+  if (!selectedFiles.length) { showToast('Please select at least one photo.', 'error'); return; }
+  const title    = document.getElementById('photo-title').value.trim();
+  const category = document.getElementById('photo-category').value;
+  const desc     = document.getElementById('photo-desc').value.trim();
+
+  const progress = document.getElementById('upload-progress');
+  const fill     = document.getElementById('progress-fill');
+  const progTxt  = document.getElementById('progress-text');
+  progress.style.display = 'block';
+
+  let done = 0;
+  for (const file of selectedFiles) {
+    const ext  = file.name.split('.').pop();
+    const path = `gallery/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, file, { contentType: file.type });
+    if (upErr) { showToast(`Upload failed: ${upErr.message}`, 'error'); continue; }
+
+    const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(path);
+    const publicUrl = urlData.publicUrl;
+
+    await sb.from('gallery').insert([{ title: title || file.name.replace(/\.[^.]+$/, ''), category, description: desc, image_url: publicUrl }]);
+    done++;
+    fill.style.width = `${(done / selectedFiles.length) * 100}%`;
+    progTxt.textContent = `Uploaded ${done} of ${selectedFiles.length}…`;
+  }
+
+  progress.style.display = 'none';
+  fill.style.width = '0%';
+  selectedFiles = [];
+  document.getElementById('photo-file').value = '';
+  document.getElementById('selected-files').textContent = '';
+  document.getElementById('photo-title').value = '';
+  document.getElementById('photo-desc').value = '';
+  showToast(`${done} photo(s) uploaded successfully! ✨`);
+  loadGallery();
+  loadAdminGallery();
+}
+
+// ─────────────────────────────────────────────
+//  ADMIN GALLERY MANAGE
+// ─────────────────────────────────────────────
+async function loadAdminGallery() {
+  const { data } = await sb.from('gallery').select('*').order('created_at', { ascending: false });
+  const grid = document.getElementById('admin-gallery-grid');
+  if (!data || !data.length) {
+    grid.innerHTML = `<div style="color:var(--muted);font-size:0.8rem;padding:20px;grid-column:1/-1;">No photos yet. Upload some!</div>`;
+    return;
+  }
+  grid.innerHTML = data.map(p => `
+    <div class="admin-gallery-item">
+      <img src="${escHtml(p.image_url)}" alt="${escHtml(p.title || '')}" loading="lazy" />
+      <div class="item-info"><p>${escHtml(p.title || 'Untitled')}</p></div>
+      <div class="item-actions">
+        <button class="item-delete-btn" onclick="deletePhoto('${p.id}','${escHtml(p.image_url)}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function deletePhoto(id, url) {
+  if (!confirm('Delete this photo permanently?')) return;
+  // Extract storage path from URL
+  const pathMatch = url.match(/nail-art-photos\/(.+)$/);
+  if (pathMatch) {
+    await sb.storage.from(BUCKET).remove([pathMatch[1]]);
+  }
+  await sb.from('gallery').delete().eq('id', id);
+  showToast('Photo deleted.');
+  loadGallery();
+  loadAdminGallery();
+}
+
+// ─────────────────────────────────────────────
+//  ADMIN SERVICES MANAGE
+// ─────────────────────────────────────────────
+async function loadAdminServices() {
+  const { data } = await sb.from('services').select('*').order('created_at', { ascending: true });
+  const list = document.getElementById('admin-services-list');
+  if (!data || !data.length) {
+    list.innerHTML = `<div style="color:var(--muted);font-size:0.8rem;padding:10px;">No custom services yet. Add one above!</div>`;
+    return;
+  }
+  list.innerHTML = data.map(s => `
+    <div class="admin-service-row">
+      <div style="font-size:1.3rem;flex-shrink:0;">${escHtml(s.icon || '💅')}</div>
+      <div class="admin-service-info">
+        <div class="admin-service-name">${escHtml(s.name)}</div>
+        <div class="admin-service-meta">${escHtml(s.price || '')} · ${escHtml(s.duration || '')}</div>
+      </div>
+      <button class="service-del-btn" onclick="deleteService('${s.id}')">Delete</button>
+    </div>`).join('');
+}
+
+async function addService() {
+  const name     = document.getElementById('svc-name').value.trim();
+  const price    = document.getElementById('svc-price').value.trim();
+  const duration = document.getElementById('svc-duration').value.trim();
+  const icon     = document.getElementById('svc-icon').value.trim() || '💅';
+  const desc     = document.getElementById('svc-desc').value.trim();
+  if (!name) { showToast('Please enter a service name.', 'error'); return; }
+  const { error } = await sb.from('services').insert([{ name, price, duration, icon, description: desc }]);
+  if (error) { showToast('Failed to add service: ' + error.message, 'error'); return; }
+  showToast('Service added!');
+  ['svc-name','svc-price','svc-duration','svc-icon','svc-desc'].forEach(id => document.getElementById(id).value = '');
+  loadAdminServices();
+  loadServices();
+}
+
+async function deleteService(id) {
+  if (!confirm('Delete this service?')) return;
+  await sb.from('services').delete().eq('id', id);
+  showToast('Service deleted.');
+  loadAdminServices();
+  loadServices();
+}
+
+// ─────────────────────────────────────────────
+//  BOOKINGS
+// ─────────────────────────────────────────────
+async function submitBooking() {
+  const fname   = document.getElementById('b-fname').value.trim();
+  const lname   = document.getElementById('b-lname').value.trim();
+  const email   = document.getElementById('b-email').value.trim();
+  const phone   = document.getElementById('b-phone').value.trim();
+  const service = document.getElementById('b-service').value;
+  const date    = document.getElementById('b-date').value;
+  const notes   = document.getElementById('b-notes').value.trim();
+  const msg     = document.getElementById('booking-msg');
+  if (!fname || !email || !service) {
+    msg.className = 'form-msg error'; msg.textContent = 'Please fill in name, email, and service.';
+    return;
+  }
+  const { error } = await sb.from('bookings').insert([{ first_name: fname, last_name: lname, email, phone, service, preferred_date: date || null, notes, status: 'new' }]);
+  if (error) { msg.className = 'form-msg error'; msg.textContent = 'Something went wrong. Please try again.'; return; }
+  msg.className = 'form-msg success';
+  msg.textContent = '✨ Request received! We\'ll be in touch soon.';
+  ['b-fname','b-lname','b-email','b-phone','b-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('b-service').value = '';
+  document.getElementById('b-date').value = '';
+}
+
+async function loadBookings() {
+  const { data } = await sb.from('bookings').select('*').order('created_at', { ascending: false });
+  const tbody = document.getElementById('bookings-tbody');
+  if (!data || !data.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted);">No bookings yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(b => `
+    <tr>
+      <td style="color:var(--cream);">${escHtml(b.first_name)} ${escHtml(b.last_name || '')}</td>
+      <td>${escHtml(b.email || '')}</td>
+      <td>${escHtml(b.phone || '—')}</td>
+      <td>${escHtml(b.service || '')}</td>
+      <td>${b.preferred_date ? new Date(b.preferred_date).toLocaleDateString() : '—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(b.notes || '—')}</td>
+      <td><span class="status-badge status-${b.status === 'confirmed' ? 'confirmed' : 'new'}">${escHtml(b.status || 'new')}</span></td>
+    </tr>`).join('');
+}
+
+sb.channel('bookings-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+    loadBookings();
+  }).subscribe();
+
+// ─────────────────────────────────────────────
+//  HELPER
+// ─────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+loadGallery();
+loadServices();
+
+// Check if already logged in
+sb.auth.getSession().then(({ data }) => {
+  if (data?.session?.user) {
+    document.getElementById('admin-email-display').textContent = data.session.user.email;
+  }
+});
+
+// Set min date on booking
+const dateInput = document.getElementById('b-date');
+const today = new Date(); today.setDate(today.getDate() + 1);
+dateInput.min = today.toISOString().split('T')[0];
+
+// Intersection Observer for scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.service-card, .stat-item, .about-grid > *').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(24px)';
+  el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
