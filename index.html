@@ -142,6 +142,7 @@
     }
     .hero-content {
       text-align: center; padding: 40px 20px;
+      padding-top: 100px;
       position: relative; z-index: 2;
     }
     .hero-eyebrow {
@@ -151,21 +152,34 @@
     }
     .hero-title {
       font-family: 'Cinzel', serif;
-      font-size: clamp(3rem, 10vw, 7.5rem);
-      line-height: 0.9; font-weight: 700; letter-spacing: -0.01em;
+      font-weight: 700; letter-spacing: 0.02em;
       margin-bottom: 12px;
       animation: fadeUp 0.8s ease 0.5s both;
+      line-height: 1;
     }
-    .hero-title span {
+    .hero-title-cd {
       display: block;
+      font-size: clamp(3.5rem, 12vw, 9rem);
+      line-height: 0.88;
+      letter-spacing: 0;
+      white-space: nowrap;
+      background: linear-gradient(135deg, var(--rose-light) 0%, var(--gold) 50%, var(--rose) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-size: 200% 200%;
+      animation: shimmer 4s ease infinite;
+      margin-bottom: 0;
+    }
+    .hero-title-main {
+      display: block;
+      font-size: clamp(3.5rem, 12vw, 9rem);
+      line-height: 0.88;
       background: linear-gradient(135deg, var(--rose-light) 0%, var(--gold) 50%, var(--rose) 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-size: 200% 200%;
       animation: shimmer 4s ease infinite;
     }
     .hero-title .amp {
-      font-size: 0.8em; font-style: italic;
-      -webkit-text-fill-color: var(--gold); opacity: 0.7;
+      font-style: italic;
     }
     @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
     .hero-tagline {
@@ -324,13 +338,16 @@
     /* ── SERVICES ── */
     #services { padding: 100px 0; background: var(--charcoal); }
     .services-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 24px; align-items: stretch;
     }
+    @media(max-width:960px) { .services-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:600px) { .services-grid { grid-template-columns: 1fr; } }
     .service-card {
       background: var(--card); border: 1px solid var(--border);
       border-radius: 4px; padding: 36px 30px;
       transition: all 0.4s; position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
     }
     .service-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -344,7 +361,7 @@
       font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 600;
       color: var(--cream); letter-spacing: 0.05em; margin-bottom: 10px;
     }
-    .service-desc { font-size: 0.82rem; line-height: 1.7; color: var(--muted); margin-bottom: 20px; }
+    .service-desc { font-size: 0.82rem; line-height: 1.7; color: var(--muted); margin-bottom: 20px; flex: 1; }
     .service-meta {
       display: flex; align-items: center; justify-content: space-between;
       border-top: 1px solid var(--border); padding-top: 16px;
@@ -641,6 +658,12 @@
     .admin-service-info { flex: 1; }
     .admin-service-name { font-size: 0.85rem; color: var(--cream); margin-bottom: 2px; }
     .admin-service-meta { font-size: 0.72rem; color: var(--muted); }
+    .service-edit-btn {
+      background: transparent; border: 1px solid rgba(201,132,122,0.4);
+      color: var(--rose-light); padding: 6px 12px; border-radius: 2px;
+      font-size: 0.68rem; cursor: pointer; transition: all 0.3s; white-space: nowrap;
+    }
+    .service-edit-btn:hover { background: rgba(201,132,122,0.12); border-color: var(--rose); }
     .service-del-btn {
       background: transparent; border: 1px solid var(--border);
       color: var(--muted); padding: 6px 12px; border-radius: 2px;
@@ -729,6 +752,68 @@
       .hero-cta { flex-direction: column; align-items: center; }
       .upload-fields { grid-template-columns: 1fr; }
     }
+
+    /* ── LIGHT MODE ── */
+    body.light {
+      --black: #d6cfc8;
+      --charcoal: #ccc4bc;
+      --panel: #c4bbb2;
+      --card: #bdb4aa;
+      --border: #a89e95;
+      --muted: #2e2420;
+      --text: #0e0a08;
+      --cream: #0e0a08;
+    }
+    body.light #bg-canvas { opacity: 0.15; }
+    body.light nav { background: rgba(214,207,200,0.95) !important; }
+    body.light nav.scrolled { background: rgba(214,207,200,0.98) !important; border-bottom-color: rgba(180,120,110,0.3) !important; }
+    body.light .nav-links a { color: #1a0e0a; }
+    body.light ::-webkit-scrollbar-track { background: var(--black); }
+    body.light .hero-deco { -webkit-text-stroke-color: rgba(201,132,122,0.08); }
+    body.light #loader { background: var(--black); }
+    body.light .hero-tagline { color: #0e0a08 !important; opacity: 1 !important; }
+    body.light .hero-eyebrow { color: #7a4a20 !important; }
+    body.light .section-eyebrow { color: #7a4a20 !important; }
+    body.light .about-bio { color: #1a0e0a !important; }
+    body.light .about-title { color: #8a3a2a !important; }
+    body.light .about-name { color: #0e0a08 !important; }
+    body.light .service-desc { color: #1a0e0a !important; }
+    body.light .service-name { color: #0e0a08 !important; }
+    body.light .stat-label { color: #1a0e0a !important; }
+    body.light .stat-num { filter: brightness(0.75); }
+    body.light .footer-desc { color: #1a0e0a !important; }
+    body.light .footer-col p { color: #1a0e0a !important; }
+    body.light .footer-col ul li a { color: #1a0e0a !important; }
+    body.light .footer-copy { color: #1a0e0a !important; }
+    body.light .gallery-loading { color: #1a0e0a !important; }
+    body.light .gallery-empty { color: #1a0e0a !important; }
+    body.light .filter-btn { color: #1a0e0a; border-color: #a89e95; }
+    body.light .filter-btn.active, body.light .filter-btn:hover { color: #6a1a0a; border-color: var(--rose); }
+    body.light .admin-input, body.light .admin-select { background: var(--charcoal); color: #0e0a08; }
+    body.light .form-group input, body.light .form-group select, body.light .form-group textarea { background: var(--charcoal); color: #0e0a08; }
+    body.light .form-group label { color: #1a0e0a; }
+    body.light #admin-panel { background: var(--black); }
+    body.light .admin-header { background: var(--charcoal); }
+    body.light .toast { background: var(--card); color: #0e0a08; }
+    body.light .admin-service-name { color: #0e0a08 !important; }
+    body.light .admin-service-meta { color: #2e2420 !important; }
+
+    /* ── THEME TOGGLE ── */
+    .theme-toggle {
+      background: none; border: 1px solid var(--border);
+      border-radius: 20px; width: 52px; height: 28px;
+      cursor: pointer; position: relative;
+      transition: all 0.3s; padding: 0; flex-shrink: 0;
+    }
+    .theme-toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      transition: transform 0.3s ease;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; line-height: 1;
+    }
+    body.light .theme-toggle-thumb { transform: translateX(24px); }
   </style>
 </head>
 <body>
@@ -761,11 +846,11 @@
     <div class="modal-sub">Sign in with your administrator credentials</div>
     <div class="form-group">
       <label>Email Address</label>
-      <input type="email" id="auth-email" class="admin-input" placeholder="admin@example.com" />
+      <input type="email" id="auth-email" class="admin-input" placeholder="admin@example.com" autocomplete="off" />
     </div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" id="auth-password" class="admin-input" placeholder="••••••••" />
+      <input type="password" id="auth-password" class="admin-input" placeholder="••••••••" autocomplete="new-password" />
     </div>
     <div id="auth-error">Invalid credentials. Please try again.</div>
     <button class="admin-btn-primary" style="width:100%;margin-top:20px;padding:14px;" onclick="signIn()">
@@ -786,6 +871,7 @@
     <li><a href="#about" onclick="closeMenu()">About</a></li>
     <li><a href="#booking" onclick="closeMenu()">Book Now</a></li>
     <li><button class="admin-btn" onclick="openAuthModal()">Admin</button></li>
+    <li><button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle" title="Toggle light/dark mode"><span class="theme-toggle-thumb" id="theme-thumb">🌙</span></button></li>
   </ul>
   <button class="hamburger" onclick="toggleMenu()" id="hamburger">
     <span></span><span></span><span></span>
@@ -798,8 +884,8 @@
   <div class="hero-content">
     <p class="hero-eyebrow">✦ Premium Nail Artistry ✦</p>
     <h1 class="hero-title">
-      <span>C<span class="amp">&</span>D</span>
-      <span>Nail@rt</span>
+      <span class="hero-title-cd">C&amp;D</span>
+      <span class="hero-title-main">Nail@rt</span>
     </h1>
     <p class="hero-tagline">Art by Tejal</p>
     <div class="hero-cta">
@@ -1315,10 +1401,13 @@ const defaultServices = [
 ];
 
 async function loadServices() {
+  // Defaults always come from code — never stored in DB
+  // Fetch only custom (admin-added) services from DB and append
   const { data } = await sb.from('services').select('*').order('created_at', { ascending: true });
-  const services = (data && data.length) ? data : defaultServices;
-  renderServices(services);
-  populateServiceDropdown(services);
+  const dbServices = data || [];
+  const combined = [...defaultServices, ...dbServices];
+  renderServices(combined);
+  populateServiceDropdown(combined);
 }
 
 function renderServices(services) {
@@ -1447,20 +1536,117 @@ async function deletePhoto(id, url) {
 // ─────────────────────────────────────────────
 async function loadAdminServices() {
   const { data } = await sb.from('services').select('*').order('created_at', { ascending: true });
+  const dbServices = data || [];
   const list = document.getElementById('admin-services-list');
-  if (!data || !data.length) {
-    list.innerHTML = `<div style="color:var(--muted);font-size:0.8rem;padding:10px;">No custom services yet. Add one above!</div>`;
-    return;
-  }
-  list.innerHTML = data.map(s => `
-    <div class="admin-service-row">
-      <div style="font-size:1.3rem;flex-shrink:0;">${escHtml(s.icon || '💅')}</div>
-      <div class="admin-service-info">
-        <div class="admin-service-name">${escHtml(s.name)}</div>
-        <div class="admin-service-meta">${escHtml(s.price || '')} · ${escHtml(s.duration || '')}</div>
+
+  // ── Built-in services (from defaultServices array) ──
+  const builtInHtml = `
+    <div style="font-size:0.62rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;margin-top:4px;">
+      ✦ Built-in Services (always shown on site)
+    </div>
+    ${defaultServices.map(s => `
+    <div class="admin-service-row" id="svc-row-${s.id}">
+      <div class="svc-view-mode" id="svc-view-${s.id}" style="display:flex;align-items:center;gap:14px;flex:1;">
+        <div style="font-size:1.3rem;flex-shrink:0;">${escHtml(s.icon||'💅')}</div>
+        <div class="admin-service-info">
+          <div class="admin-service-name">${escHtml(s.name)}</div>
+          <div class="admin-service-meta">${escHtml(s.price||'')} · ${escHtml(s.duration||'')}</div>
+        </div>
+        <div style="margin-left:auto;flex-shrink:0;">
+          <button class="service-edit-btn" onclick="startEditBuiltIn('${s.id}')">Edit</button>
+        </div>
       </div>
-      <button class="service-del-btn" onclick="deleteService('${s.id}')">Delete</button>
-    </div>`).join('');
+      <div class="svc-edit-mode" id="svc-edit-${s.id}" style="display:none;flex:1;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
+          <div><label class="admin-label">Icon</label><input class="admin-input" id="bi-icon-${s.id}" value="${escHtml(s.icon||'💅')}" /></div>
+          <div><label class="admin-label">Name</label><input class="admin-input" id="bi-name-${s.id}" value="${escHtml(s.name)}" /></div>
+          <div><label class="admin-label">Price</label><input class="admin-input" id="bi-price-${s.id}" value="${escHtml(s.price||'')}" /></div>
+          <div><label class="admin-label">Duration</label><input class="admin-input" id="bi-dur-${s.id}" value="${escHtml(s.duration||'')}" /></div>
+          <div style="grid-column:1/-1"><label class="admin-label">Description</label><input class="admin-input" id="bi-desc-${s.id}" value="${escHtml(s.description||'')}" /></div>
+          <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;">
+            <button class="admin-btn-primary" style="padding:8px 18px;" onclick="saveBuiltIn('${s.id}')">Save Changes</button>
+            <button class="service-del-btn" onclick="cancelEditService('${s.id}')">Cancel</button>
+            <span style="font-size:0.68rem;color:var(--muted);margin-left:4px;">Changes apply until page reload</span>
+          </div>
+        </div>
+      </div>
+    </div>`).join('')}`;
+
+  // ── Custom DB services ──
+  const customHtml = dbServices.length > 0 ? `
+    <div style="font-size:0.62rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--rose);margin:20px 0 12px;">
+      ✦ Custom Services (saved in database)
+    </div>
+    ${dbServices.map(s => `
+    <div class="admin-service-row" id="svc-row-${s.id}">
+      <div class="svc-view-mode" id="svc-view-${s.id}" style="display:flex;align-items:center;gap:14px;flex:1;">
+        <div style="font-size:1.3rem;flex-shrink:0;">${escHtml(s.icon||'💅')}</div>
+        <div class="admin-service-info">
+          <div class="admin-service-name">${escHtml(s.name)}</div>
+          <div class="admin-service-meta">${escHtml(s.price||'')} · ${escHtml(s.duration||'')}</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-left:auto;flex-shrink:0;">
+          <button class="service-edit-btn" onclick="startEditService('${s.id}')">Edit</button>
+          <button class="service-del-btn" onclick="deleteService('${s.id}')">Delete</button>
+        </div>
+      </div>
+      <div class="svc-edit-mode" id="svc-edit-${s.id}" style="display:none;flex:1;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
+          <div><label class="admin-label">Icon</label><input class="admin-input" id="ei-icon-${s.id}" value="${escHtml(s.icon||'💅')}" /></div>
+          <div><label class="admin-label">Name</label><input class="admin-input" id="ei-name-${s.id}" value="${escHtml(s.name)}" /></div>
+          <div><label class="admin-label">Price</label><input class="admin-input" id="ei-price-${s.id}" value="${escHtml(s.price||'')}" /></div>
+          <div><label class="admin-label">Duration</label><input class="admin-input" id="ei-dur-${s.id}" value="${escHtml(s.duration||'')}" /></div>
+          <div style="grid-column:1/-1"><label class="admin-label">Description</label><input class="admin-input" id="ei-desc-${s.id}" value="${escHtml(s.description||'')}" /></div>
+          <div style="grid-column:1/-1;display:flex;gap:8px;">
+            <button class="admin-btn-primary" style="padding:8px 18px;" onclick="saveEditService('${s.id}')">Save</button>
+            <button class="service-del-btn" onclick="cancelEditService('${s.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('')}` : `<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;margin-top:16px;">No custom services yet — add one above to appear here.</div>`;
+
+  list.innerHTML = builtInHtml + customHtml;
+}
+
+function startEditBuiltIn(id) {
+  document.getElementById('svc-view-' + id).style.display = 'none';
+  document.getElementById('svc-edit-' + id).style.display = 'block';
+}
+
+function saveBuiltIn(id) {
+  const svc = defaultServices.find(s => s.id === id);
+  if (!svc) return;
+  svc.icon        = document.getElementById('bi-icon-' + id).value.trim() || svc.icon;
+  svc.name        = document.getElementById('bi-name-' + id).value.trim() || svc.name;
+  svc.price       = document.getElementById('bi-price-' + id).value.trim();
+  svc.duration    = document.getElementById('bi-dur-' + id).value.trim();
+  svc.description = document.getElementById('bi-desc-' + id).value.trim();
+  cancelEditService(id);
+  loadServices();       // re-render client
+  loadAdminServices();  // re-render admin list
+  showToast('Built-in service updated!');
+}
+
+function startEditService(id) {
+  document.getElementById('svc-view-' + id).style.display = 'none';
+  document.getElementById('svc-edit-' + id).style.display = 'block';
+}
+function cancelEditService(id) {
+  document.getElementById('svc-view-' + id).style.display = 'flex';
+  document.getElementById('svc-edit-' + id).style.display = 'none';
+}
+async function saveEditService(id) {
+  const icon = document.getElementById('ei-icon-' + id).value.trim();
+  const name = document.getElementById('ei-name-' + id).value.trim();
+  const price = document.getElementById('ei-price-' + id).value.trim();
+  const duration = document.getElementById('ei-dur-' + id).value.trim();
+  const description = document.getElementById('ei-desc-' + id).value.trim();
+  if (!name) { showToast('Name is required.', 'error'); return; }
+  const { error } = await sb.from('services').update({ icon, name, price, duration, description }).eq('id', id);
+  if (error) { showToast('Update failed: ' + error.message, 'error'); return; }
+  showToast('Service updated!');
+  loadAdminServices();
+  loadServices();
 }
 
 async function addService() {
@@ -1542,6 +1728,33 @@ function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+// ─────────────────────────────────────────────
+//  THEME TOGGLE
+// ─────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  const thumb = document.getElementById('theme-thumb');
+  thumb.textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('cd-theme', isLight ? 'light' : 'dark');
+}
+// Restore saved theme
+(function() {
+  const saved = localStorage.getItem('cd-theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    document.addEventListener('DOMContentLoaded', () => {
+      const t = document.getElementById('theme-thumb');
+      if (t) t.textContent = '☀️';
+    });
+  }
+})();
+
+// Enter key on auth modal
+document.addEventListener('keydown', function(e) {
+  const modal = document.getElementById('auth-modal');
+  if (e.key === 'Enter' && modal.classList.contains('active')) signIn();
+});
 
 // ─────────────────────────────────────────────
 //  INIT
