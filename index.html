@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     :root {
       --black: #0a0a0a;
@@ -748,6 +749,45 @@
       .admin-body { padding: 20px; }
       .admin-header { padding: 16px 20px; }
     }
+
+    /* ── TIME SLOTS ── */
+    .time-slots-wrap { margin-top: 6px; }
+    .time-slots-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+      gap: 8px; margin-top: 8px;
+    }
+    .time-slot-btn {
+      padding: 9px 6px; border-radius: 3px; font-size: 0.76rem;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all 0.25s;
+      text-align: center; font-family: 'Inter', sans-serif;
+    }
+    .time-slot-btn:hover:not(:disabled) { border-color: var(--rose); color: var(--rose); }
+    .time-slot-btn.selected { background: linear-gradient(135deg, var(--rose), var(--gold)); color: var(--black); border-color: transparent; font-weight: 500; }
+    .time-slot-btn:disabled { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+    .time-slot-label { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    .slots-loading { font-size: 0.78rem; color: var(--muted); font-style: italic; padding: 8px 0; }
+    /* ── AVAILABILITY ADMIN ── */
+    .avail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .day-toggle {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
+      transition: all 0.25s;
+    }
+    .day-toggle.on { border-color: var(--rose); background: rgba(201,132,122,0.07); }
+    .day-toggle input[type=checkbox] { accent-color: var(--rose); width: 16px; height: 16px; }
+    .day-toggle span { font-size: 0.82rem; color: var(--text); }
+    .emailjs-note {
+      background: rgba(201,169,110,0.08); border: 1px solid rgba(201,169,110,0.25);
+      border-radius: 3px; padding: 14px; font-size: 0.78rem; color: var(--muted);
+      line-height: 1.7; margin-bottom: 18px;
+    }
+    .emailjs-note a { color: var(--gold); }
+    .settings-section-title {
+      font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--rose); margin: 24px 0 12px;
+    }
+
     @media(max-width:480px) {
       .hero-cta { flex-direction: column; align-items: center; }
       .upload-fields { grid-template-columns: 1fr; }
@@ -1003,8 +1043,15 @@
         </div>
         <div class="form-group">
           <label>Preferred Date</label>
-          <input type="date" id="b-date" />
+          <input type="date" id="b-date" onchange="loadTimeSlots()" />
         </div>
+      </div>
+      <div class="form-group" id="time-slot-group" style="display:none;">
+        <label>Available Time Slots <span style="font-size:0.68rem;color:var(--muted);font-weight:300;">(1 slot = 1 hr · 2 adjacent slots = 2 hrs)</span></label>
+        <div class="time-slots-wrap">
+          <div id="time-slots-container" class="time-slots-grid"></div>
+        </div>
+        <input type="hidden" id="b-timeslot" />
       </div>
       <div class="form-group">
         <label>Additional Notes</label>
@@ -1060,6 +1107,7 @@
       <button class="admin-tab" onclick="switchTab('gallery-manage',this)">Manage Gallery</button>
       <button class="admin-tab" onclick="switchTab('services-manage',this)">Services</button>
       <button class="admin-tab" onclick="switchTab('bookings-manage',this)">Bookings</button>
+      <button class="admin-tab" onclick="switchTab('availability',this)">Availability & Email</button>
     </div>
 
     <!-- UPLOAD TAB -->
@@ -1170,6 +1218,76 @@
           </table>
         </div>
       </div>
+    </div>
+
+    <!-- AVAILABILITY & EMAIL TAB -->
+    <div class="admin-section" id="tab-availability">
+
+      <!-- Working Days & Hours -->
+      <div class="admin-card">
+        <div class="admin-card-title">Working Days & Time Slots</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;max-width:400px;">
+          <div>
+            <label class="admin-label">Start Time</label>
+            <input class="admin-input" id="av-start" type="time" value="09:00" />
+          </div>
+          <div>
+            <label class="admin-label">End Time</label>
+            <input class="admin-input" id="av-end" type="time" value="19:00" />
+          </div>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-bottom:16px;">
+          Slots are 1 hour each. Clients can select 1 slot (1-hour appointment) or click an adjacent slot to extend to 2 hours.
+        </p>
+        <label class="admin-label" style="margin-bottom:10px;display:block;">Available Days</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;" id="av-days">
+          <label class="day-toggle" id="day-1"><input type="checkbox" value="1" onchange="toggleDay(this)" /> <span>Monday</span></label>
+          <label class="day-toggle" id="day-2"><input type="checkbox" value="2" onchange="toggleDay(this)" /> <span>Tuesday</span></label>
+          <label class="day-toggle" id="day-3"><input type="checkbox" value="3" onchange="toggleDay(this)" /> <span>Wednesday</span></label>
+          <label class="day-toggle" id="day-4"><input type="checkbox" value="4" onchange="toggleDay(this)" /> <span>Thursday</span></label>
+          <label class="day-toggle" id="day-5"><input type="checkbox" value="5" onchange="toggleDay(this)" /> <span>Friday</span></label>
+          <label class="day-toggle" id="day-6"><input type="checkbox" value="6" onchange="toggleDay(this)" /> <span>Saturday</span></label>
+          <label class="day-toggle" id="day-0"><input type="checkbox" value="0" onchange="toggleDay(this)" /> <span>Sunday</span></label>
+        </div>
+        <button class="admin-btn-primary" onclick="saveAvailability()">Save Availability</button>
+      </div>
+
+      <!-- EmailJS Settings -->
+      <div class="admin-card">
+        <div class="admin-card-title">Email Notifications (EmailJS)</div>
+        <div class="emailjs-note">
+          📧 To receive booking emails, sign up free at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> (200 emails/month free).<br/>
+          1. Create an <strong>Email Service</strong> (Gmail recommended) → copy <strong>Service ID</strong><br/>
+          2. Create an <strong>Email Template</strong> using the variables below → copy <strong>Template ID</strong><br/>
+          3. Go to <strong>Account → API Keys</strong> → copy your <strong>Public Key</strong><br/>
+          <br/>
+          <strong>Template variables to use:</strong> <code>{{client_name}}</code>, <code>{{client_email}}</code>, <code>{{client_phone}}</code>, <code>{{service}}</code>, <code>{{date}}</code>, <code>{{time_slot}}</code>, <code>{{notes}}</code>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;">
+          <div>
+            <label class="admin-label">EmailJS Public Key</label>
+            <input class="admin-input" id="ej-pubkey" placeholder="user_xxxxxxxxx" />
+          </div>
+          <div>
+            <label class="admin-label">Service ID</label>
+            <input class="admin-input" id="ej-service" placeholder="service_xxxxxxx" />
+          </div>
+          <div>
+            <label class="admin-label">Template ID</label>
+            <input class="admin-input" id="ej-template" placeholder="template_xxxxxxx" />
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label class="admin-label">Admin Email (to receive bookings)</label>
+          <input class="admin-input" id="ej-admin-email" placeholder="your@email.com" style="max-width:300px;" />
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="admin-btn-primary" onclick="saveEmailSettings()">Save Email Settings</button>
+          <button class="service-edit-btn" onclick="testEmail()">Send Test Email</button>
+        </div>
+        <div id="email-settings-msg" style="margin-top:10px;font-size:0.78rem;"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1302,6 +1420,8 @@ function openAdmin(email) {
   loadAdminGallery();
   loadAdminServices();
   loadBookings();
+  loadAvailability();
+  loadEmailSettings();
 }
 function closeAdmin() {
   document.getElementById('admin-panel').classList.remove('open');
@@ -1315,6 +1435,7 @@ function switchTab(tabId, btn) {
   if (tabId === 'gallery-manage') loadAdminGallery();
   if (tabId === 'services-manage') loadAdminServices();
   if (tabId === 'bookings-manage') loadBookings();
+  if (tabId === 'availability') { loadAvailability(); loadEmailSettings(); }
 }
 
 // ─────────────────────────────────────────────
@@ -1327,7 +1448,6 @@ async function loadGallery() {
   if (error) { renderGallery([]); return; }
   allPhotos = data || [];
   renderGallery(allPhotos);
-  populateServiceDropdown();
 }
 
 function renderGallery(photos) {
@@ -1391,27 +1511,20 @@ document.getElementById('lightbox').addEventListener('click', function(e) {
 // ─────────────────────────────────────────────
 //  SERVICES – CLIENT
 // ─────────────────────────────────────────────
-const defaultServices = [
-  { id:'d1', icon:'💅', name:'Classic Manicure', description:'Shaping, cuticle care, and a flawless polish application for a clean, timeless look.', price:'$25', duration:'30 min' },
-  { id:'d2', icon:'✨', name:'Gel Manicure', description:'Long-lasting gel polish that stays chip-free for up to 3 weeks with a high-gloss finish.', price:'$40', duration:'45 min' },
-  { id:'d3', icon:'🎨', name:'Nail Art Design', description:'Custom hand-painted designs, florals, geometric patterns and artistic creations — your vision realized.', price:'From $55', duration:'60–90 min' },
-  { id:'d4', icon:'💎', name:'Acrylic Extensions', description:'Durable acrylic extensions in your desired length and shape, finished with your choice of colour.', price:'$65', duration:'75 min' },
-  { id:'d5', icon:'🌸', name:'Ombré / Dip Nails', description:'Smooth gradient ombré nails using premium dip powder for a salon-quality fade that lasts.', price:'$50', duration:'60 min' },
-  { id:'d6', icon:'🪻', name:'Full Set with Art', description:'Complete new set of nails with a custom nail art design of your choice from our lookbook.', price:'$85', duration:'90 min' },
-];
-
 async function loadServices() {
-  // Defaults always come from code — never stored in DB
-  // Fetch only custom (admin-added) services from DB and append
   const { data } = await sb.from('services').select('*').order('created_at', { ascending: true });
-  const dbServices = data || [];
-  const combined = [...defaultServices, ...dbServices];
-  renderServices(combined);
-  populateServiceDropdown(combined);
+  const services = data || [];
+  renderServices(services);
+  populateServiceDropdown(services);
 }
 
 function renderServices(services) {
-  document.getElementById('services-grid').innerHTML = services.map(s => `
+  const grid = document.getElementById('services-grid');
+  if (!services.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;font-family:Cormorant Garamond,serif;font-style:italic;color:var(--muted);font-size:1.05rem;">Services coming soon — check back soon ✨</div>';
+    return;
+  }
+  grid.innerHTML = services.map(s => `
     <div class="service-card">
       <div class="service-icon">${escHtml(s.icon || '💅')}</div>
       <div class="service-name">${escHtml(s.name)}</div>
@@ -1426,9 +1539,8 @@ function renderServices(services) {
 function populateServiceDropdown(services) {
   const sel = document.getElementById('b-service');
   const current = sel.value;
-  const opts = services || defaultServices;
   sel.innerHTML = `<option value="">Select a service</option>` +
-    opts.map(s => `<option value="${escHtml(s.name)}" ${s.name === current ? 'selected':''}>${escHtml(s.name)} – ${escHtml(s.price || '')}</option>`).join('');
+    (services || []).map(s => `<option value="${escHtml(s.name)}" ${s.name === current ? 'selected':''}>${escHtml(s.name)}${s.price ? ' – ' + escHtml(s.price) : ''}</option>`).join('');
 }
 
 sb.channel('services-changes')
@@ -1534,134 +1646,128 @@ async function deletePhoto(id, url) {
 // ─────────────────────────────────────────────
 //  ADMIN SERVICES MANAGE
 // ─────────────────────────────────────────────
+
+// Store services in memory so edit form can read them without escaping issues
+let adminServicesCache = [];
+
 async function loadAdminServices() {
   const { data } = await sb.from('services').select('*').order('created_at', { ascending: true });
-  const dbServices = data || [];
+  adminServicesCache = data || [];
   const list = document.getElementById('admin-services-list');
 
-  // ── Built-in services (from defaultServices array) ──
-  const builtInHtml = `
-    <div style="font-size:0.62rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;margin-top:4px;">
-      ✦ Built-in Services (always shown on site)
-    </div>
-    ${defaultServices.map(s => `
-    <div class="admin-service-row" id="svc-row-${s.id}">
-      <div class="svc-view-mode" id="svc-view-${s.id}" style="display:flex;align-items:center;gap:14px;flex:1;">
-        <div style="font-size:1.3rem;flex-shrink:0;">${escHtml(s.icon||'💅')}</div>
-        <div class="admin-service-info">
-          <div class="admin-service-name">${escHtml(s.name)}</div>
-          <div class="admin-service-meta">${escHtml(s.price||'')} · ${escHtml(s.duration||'')}</div>
-        </div>
-        <div style="margin-left:auto;flex-shrink:0;">
-          <button class="service-edit-btn" onclick="startEditBuiltIn('${s.id}')">Edit</button>
-        </div>
-      </div>
-      <div class="svc-edit-mode" id="svc-edit-${s.id}" style="display:none;flex:1;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
-          <div><label class="admin-label">Icon</label><input class="admin-input" id="bi-icon-${s.id}" value="${escHtml(s.icon||'💅')}" /></div>
-          <div><label class="admin-label">Name</label><input class="admin-input" id="bi-name-${s.id}" value="${escHtml(s.name)}" /></div>
-          <div><label class="admin-label">Price</label><input class="admin-input" id="bi-price-${s.id}" value="${escHtml(s.price||'')}" /></div>
-          <div><label class="admin-label">Duration</label><input class="admin-input" id="bi-dur-${s.id}" value="${escHtml(s.duration||'')}" /></div>
-          <div style="grid-column:1/-1"><label class="admin-label">Description</label><input class="admin-input" id="bi-desc-${s.id}" value="${escHtml(s.description||'')}" /></div>
-          <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;">
-            <button class="admin-btn-primary" style="padding:8px 18px;" onclick="saveBuiltIn('${s.id}')">Save Changes</button>
-            <button class="service-del-btn" onclick="cancelEditService('${s.id}')">Cancel</button>
-            <span style="font-size:0.68rem;color:var(--muted);margin-left:4px;">Changes apply until page reload</span>
-          </div>
-        </div>
-      </div>
-    </div>`).join('')}`;
+  if (!adminServicesCache.length) {
+    list.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:16px 0;">No services yet — add one using the form above.</div>`;
+    return;
+  }
 
-  // ── Custom DB services ──
-  const customHtml = dbServices.length > 0 ? `
-    <div style="font-size:0.62rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--rose);margin:20px 0 12px;">
-      ✦ Custom Services (saved in database)
-    </div>
-    ${dbServices.map(s => `
+  list.innerHTML = adminServicesCache.map(s => `
     <div class="admin-service-row" id="svc-row-${s.id}">
-      <div class="svc-view-mode" id="svc-view-${s.id}" style="display:flex;align-items:center;gap:14px;flex:1;">
-        <div style="font-size:1.3rem;flex-shrink:0;">${escHtml(s.icon||'💅')}</div>
-        <div class="admin-service-info">
+      <!-- VIEW MODE -->
+      <div id="svc-view-${s.id}" style="display:flex;align-items:center;gap:14px;flex:1;">
+        <div style="font-size:1.3rem;flex-shrink:0;">${escHtml(s.icon || '💅')}</div>
+        <div class="admin-service-info" style="flex:1;">
           <div class="admin-service-name">${escHtml(s.name)}</div>
-          <div class="admin-service-meta">${escHtml(s.price||'')} · ${escHtml(s.duration||'')}</div>
+          <div class="admin-service-meta">${escHtml(s.price || '')}${s.duration ? ' · ' + escHtml(s.duration) : ''}</div>
         </div>
-        <div style="display:flex;gap:8px;margin-left:auto;flex-shrink:0;">
-          <button class="service-edit-btn" onclick="startEditService('${s.id}')">Edit</button>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button class="service-edit-btn" onclick="openEditService('${s.id}')">Edit</button>
           <button class="service-del-btn" onclick="deleteService('${s.id}')">Delete</button>
         </div>
       </div>
-      <div class="svc-edit-mode" id="svc-edit-${s.id}" style="display:none;flex:1;">
+      <!-- EDIT MODE -->
+      <div id="svc-edit-${s.id}" style="display:none;flex:1;">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
-          <div><label class="admin-label">Icon</label><input class="admin-input" id="ei-icon-${s.id}" value="${escHtml(s.icon||'💅')}" /></div>
-          <div><label class="admin-label">Name</label><input class="admin-input" id="ei-name-${s.id}" value="${escHtml(s.name)}" /></div>
-          <div><label class="admin-label">Price</label><input class="admin-input" id="ei-price-${s.id}" value="${escHtml(s.price||'')}" /></div>
-          <div><label class="admin-label">Duration</label><input class="admin-input" id="ei-dur-${s.id}" value="${escHtml(s.duration||'')}" /></div>
-          <div style="grid-column:1/-1"><label class="admin-label">Description</label><input class="admin-input" id="ei-desc-${s.id}" value="${escHtml(s.description||'')}" /></div>
+          <div>
+            <label class="admin-label">Icon</label>
+            <input class="admin-input" id="ef-icon-${s.id}" placeholder="💅" />
+          </div>
+          <div>
+            <label class="admin-label">Name</label>
+            <input class="admin-input" id="ef-name-${s.id}" placeholder="Service name" />
+          </div>
+          <div>
+            <label class="admin-label">Price ($ included)</label>
+            <input class="admin-input" id="ef-price-${s.id}" placeholder="$45" />
+          </div>
+          <div>
+            <label class="admin-label">Duration</label>
+            <input class="admin-input" id="ef-dur-${s.id}" placeholder="60 min" />
+          </div>
+          <div style="grid-column:1/-1;">
+            <label class="admin-label">Description</label>
+            <input class="admin-input" id="ef-desc-${s.id}" placeholder="Description…" />
+          </div>
           <div style="grid-column:1/-1;display:flex;gap:8px;">
-            <button class="admin-btn-primary" style="padding:8px 18px;" onclick="saveEditService('${s.id}')">Save</button>
+            <button class="admin-btn-primary" style="padding:8px 20px;" onclick="saveEditService('${s.id}')">Save</button>
             <button class="service-del-btn" onclick="cancelEditService('${s.id}')">Cancel</button>
           </div>
         </div>
       </div>
-    </div>`).join('')}` : `<div style="color:var(--muted);font-size:0.78rem;padding:10px 0;margin-top:16px;">No custom services yet — add one above to appear here.</div>`;
-
-  list.innerHTML = builtInHtml + customHtml;
+    </div>`).join('');
 }
 
-function startEditBuiltIn(id) {
-  document.getElementById('svc-view-' + id).style.display = 'none';
-  document.getElementById('svc-edit-' + id).style.display = 'block';
-}
-
-function saveBuiltIn(id) {
-  const svc = defaultServices.find(s => s.id === id);
+function openEditService(id) {
+  const svc = adminServicesCache.find(s => s.id === id);
   if (!svc) return;
-  svc.icon        = document.getElementById('bi-icon-' + id).value.trim() || svc.icon;
-  svc.name        = document.getElementById('bi-name-' + id).value.trim() || svc.name;
-  svc.price       = document.getElementById('bi-price-' + id).value.trim();
-  svc.duration    = document.getElementById('bi-dur-' + id).value.trim();
-  svc.description = document.getElementById('bi-desc-' + id).value.trim();
-  cancelEditService(id);
-  loadServices();       // re-render client
-  loadAdminServices();  // re-render admin list
-  showToast('Built-in service updated!');
-}
-
-function startEditService(id) {
+  // Populate fields from cache — no escaping issues
+  document.getElementById('ef-icon-'  + id).value = svc.icon        || '';
+  document.getElementById('ef-name-'  + id).value = svc.name        || '';
+  document.getElementById('ef-price-' + id).value = svc.price       || '';
+  document.getElementById('ef-dur-'   + id).value = svc.duration    || '';
+  document.getElementById('ef-desc-'  + id).value = svc.description || '';
   document.getElementById('svc-view-' + id).style.display = 'none';
   document.getElementById('svc-edit-' + id).style.display = 'block';
 }
+
 function cancelEditService(id) {
   document.getElementById('svc-view-' + id).style.display = 'flex';
   document.getElementById('svc-edit-' + id).style.display = 'none';
 }
+
 async function saveEditService(id) {
-  const icon = document.getElementById('ei-icon-' + id).value.trim();
-  const name = document.getElementById('ei-name-' + id).value.trim();
-  const price = document.getElementById('ei-price-' + id).value.trim();
-  const duration = document.getElementById('ei-dur-' + id).value.trim();
-  const description = document.getElementById('ei-desc-' + id).value.trim();
+  const icon  = document.getElementById('ef-icon-'  + id).value.trim();
+  const name  = document.getElementById('ef-name-'  + id).value.trim();
+  let   price = document.getElementById('ef-price-' + id).value.trim();
+  const dur   = document.getElementById('ef-dur-'   + id).value.trim();
+  const desc  = document.getElementById('ef-desc-'  + id).value.trim();
+
   if (!name) { showToast('Name is required.', 'error'); return; }
-  const { error } = await sb.from('services').update({ icon, name, price, duration, description }).eq('id', id);
-  if (error) { showToast('Update failed: ' + error.message, 'error'); return; }
-  showToast('Service updated!');
-  loadAdminServices();
-  loadServices();
+
+  // Ensure $ sign is preserved
+  if (price && !price.startsWith('$') && !price.toLowerCase().startsWith('from')) {
+    price = '$' + price;
+  }
+
+  const { error } = await sb.from('services')
+    .update({ icon, name, price, duration: dur, description: desc })
+    .eq('id', id);
+
+  if (error) {
+    showToast('Update failed: ' + error.message, 'error');
+    return;
+  }
+  showToast('Service updated! ✨');
+  await loadAdminServices();
+  await loadServices();
 }
 
 async function addService() {
   const name     = document.getElementById('svc-name').value.trim();
-  const price    = document.getElementById('svc-price').value.trim();
+  let   price    = document.getElementById('svc-price').value.trim();
   const duration = document.getElementById('svc-duration').value.trim();
   const icon     = document.getElementById('svc-icon').value.trim() || '💅';
   const desc     = document.getElementById('svc-desc').value.trim();
   if (!name) { showToast('Please enter a service name.', 'error'); return; }
+  // Ensure $ sign is preserved
+  if (price && !price.startsWith('$') && !price.toLowerCase().startsWith('from')) {
+    price = '$' + price;
+  }
   const { error } = await sb.from('services').insert([{ name, price, duration, icon, description: desc }]);
   if (error) { showToast('Failed to add service: ' + error.message, 'error'); return; }
   showToast('Service added!');
   ['svc-name','svc-price','svc-duration','svc-icon','svc-desc'].forEach(id => document.getElementById(id).value = '');
-  loadAdminServices();
-  loadServices();
+  await loadAdminServices();
+  await loadServices();
 }
 
 async function deleteService(id) {
@@ -1676,25 +1782,300 @@ async function deleteService(id) {
 //  BOOKINGS
 // ─────────────────────────────────────────────
 async function submitBooking() {
-  const fname   = document.getElementById('b-fname').value.trim();
-  const lname   = document.getElementById('b-lname').value.trim();
-  const email   = document.getElementById('b-email').value.trim();
-  const phone   = document.getElementById('b-phone').value.trim();
-  const service = document.getElementById('b-service').value;
-  const date    = document.getElementById('b-date').value;
-  const notes   = document.getElementById('b-notes').value.trim();
-  const msg     = document.getElementById('booking-msg');
+  const fname    = document.getElementById('b-fname').value.trim();
+  const lname    = document.getElementById('b-lname').value.trim();
+  const email    = document.getElementById('b-email').value.trim();
+  const phone    = document.getElementById('b-phone').value.trim();
+  const service  = document.getElementById('b-service').value;
+  const date     = document.getElementById('b-date').value;
+  const timeslot = document.getElementById('b-timeslot').value;
+  const notes    = document.getElementById('b-notes').value.trim();
+  const msg      = document.getElementById('booking-msg');
+
   if (!fname || !email || !service) {
     msg.className = 'form-msg error'; msg.textContent = 'Please fill in name, email, and service.';
     return;
   }
-  const { error } = await sb.from('bookings').insert([{ first_name: fname, last_name: lname, email, phone, service, preferred_date: date || null, notes, status: 'new' }]);
+  if (date && !timeslot) {
+    msg.className = 'form-msg error'; msg.textContent = 'Please select an available time slot.';
+    return;
+  }
+
+  const { error } = await sb.from('bookings').insert([{
+    first_name: fname, last_name: lname, email, phone,
+    service, preferred_date: date || null,
+    time_slot: timeslot || null, notes, status: 'new'
+  }]);
   if (error) { msg.className = 'form-msg error'; msg.textContent = 'Something went wrong. Please try again.'; return; }
+
   msg.className = 'form-msg success';
   msg.textContent = '✨ Request received! We\'ll be in touch soon.';
+
+  // Send admin email via EmailJS
+  sendBookingEmail({ fname, lname, email, phone, service, date, timeslot, notes });
+
+  // Reset form
   ['b-fname','b-lname','b-email','b-phone','b-notes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('b-service').value = '';
   document.getElementById('b-date').value = '';
+  document.getElementById('b-timeslot').value = '';
+  document.getElementById('time-slot-group').style.display = 'none';
+  document.getElementById('time-slots-container').innerHTML = '';
+}
+
+function sendBookingEmail({ fname, lname, email, phone, service, date, timeslot, notes }) {
+  const pk  = localStorage.getItem('ej-pubkey');
+  const sid = localStorage.getItem('ej-service');
+  const tid = localStorage.getItem('ej-template');
+  const adm = localStorage.getItem('ej-admin-email');
+  if (!pk || !sid || !tid || !adm) return; // EmailJS not configured, skip silently
+
+  try {
+    emailjs.init({ publicKey: pk });
+    emailjs.send(sid, tid, {
+      admin_email:  adm,
+      client_name:  fname + ' ' + lname,
+      client_email: email,
+      client_phone: phone || '—',
+      service:      service,
+      date:         date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : '—',
+      time_slot:    timeslot || '—',
+      notes:        notes || '—'
+    });
+  } catch(e) { console.warn('EmailJS error:', e); }
+}
+
+// ─────────────────────────────────────────────
+//  AVAILABILITY CONFIG
+// ─────────────────────────────────────────────
+let availConfig = { start: '09:00', end: '19:00', duration: 60, days: [1,2,3,4,5,6] };
+let selectedSlots = []; // tracks the two selected consecutive slots
+
+async function loadAvailability() {
+  const { data } = await sb.from('availability').select('*').limit(1).maybeSingle();
+  if (data) {
+    availConfig = { start: data.start_time, end: data.end_time, duration: data.slot_duration, days: data.days };
+  }
+  // Populate admin UI
+  document.getElementById('av-start').value = availConfig.start;
+  document.getElementById('av-end').value   = availConfig.end;
+  (availConfig.days || []).forEach(d => {
+    const el = document.querySelector(`#day-${d} input`);
+    if (el) { el.checked = true; el.closest('.day-toggle').classList.add('on'); }
+  });
+}
+
+function toggleDay(cb) {
+  cb.closest('.day-toggle').classList.toggle('on', cb.checked);
+}
+
+async function saveAvailability() {
+  const start = document.getElementById('av-start').value;
+  const end   = document.getElementById('av-end').value;
+  const days  = Array.from(document.querySelectorAll('#av-days input:checked')).map(i => parseInt(i.value));
+  const duration = 60; // always 1-hour slots; client selects 2 consecutive
+
+  availConfig = { start, end, duration, days };
+
+  const { data: existing } = await sb.from('availability').select('id').limit(1).maybeSingle();
+  if (existing) {
+    await sb.from('availability').update({ start_time: start, end_time: end, slot_duration: 60, days }).eq('id', existing.id);
+  } else {
+    await sb.from('availability').insert([{ start_time: start, end_time: end, slot_duration: 60, days }]);
+  }
+  showToast('Availability saved! ✨');
+}
+
+// ─────────────────────────────────────────────
+//  TIME SLOTS — CLIENT BOOKING FORM
+// ─────────────────────────────────────────────
+function generateSlots(startTime, endTime, durationMins) {
+  const slots = [];
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  let cur = sh * 60 + sm;
+  const end = eh * 60 + em;
+  while (cur + durationMins <= end) {
+    const h = Math.floor(cur / 60), m = cur % 60;
+    const label = `${h > 12 ? h-12 : (h === 0 ? 12 : h)}:${m.toString().padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+    slots.push({ value: label, minutes: cur });
+    cur += durationMins;
+  }
+  return slots;
+}
+
+async function loadTimeSlots() {
+  const dateVal = document.getElementById('b-date').value;
+  if (!dateVal) return;
+
+  const date = new Date(dateVal + 'T00:00:00');
+  const dow  = date.getDay();
+
+  selectedSlots = [];
+  document.getElementById('b-timeslot').value = '';
+  const container = document.getElementById('time-slots-container');
+  const group     = document.getElementById('time-slot-group');
+
+  if (!availConfig.days.includes(dow)) {
+    group.style.display = 'block';
+    container.innerHTML = '<div class="slots-loading">No availability on this day — please choose another date.</div>';
+    return;
+  }
+
+  group.style.display = 'block';
+  container.innerHTML = '<div class="slots-loading">Loading available slots…</div>';
+
+  // Fetch already-booked slots for this date
+  const { data: existing } = await sb.from('bookings')
+    .select('time_slot')
+    .eq('preferred_date', dateVal)
+    .neq('status', 'cancelled');
+
+  // A booking stores "10:00 AM – 11:00 AM", so collect all booked 1-hr blocks
+  const bookedRanges = (existing || []).map(b => b.time_slot).filter(Boolean);
+  const bookedMins   = new Set();
+  bookedRanges.forEach(range => {
+    // Parse stored range like "10:00 AM – 11:00 AM" into start minutes
+    const match = range.match(/^(\d+):(\d+)\s*(AM|PM)/i);
+    if (match) {
+      let h = parseInt(match[1]), m = parseInt(match[2]);
+      const period = match[3].toUpperCase();
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      bookedMins.add(h * 60 + m);
+    }
+  });
+
+  const allSlots = generateSlots(availConfig.start, availConfig.end, 60);
+
+  if (!allSlots.length) {
+    container.innerHTML = '<div class="slots-loading">No time slots configured. Please contact us directly.</div>';
+    return;
+  }
+
+  // Render slots — disable only if the slot itself is booked
+  container.innerHTML = `
+    <div class="slots-loading" style="grid-column:1/-1;margin-bottom:4px;">
+      Click once for 1 hour · Click an adjacent slot to extend to 2 hours
+    </div>` +
+    allSlots.map((s, i) => {
+      const disabled = bookedMins.has(s.minutes);
+      return `<button type="button" class="time-slot-btn"
+        data-index="${i}" data-minutes="${s.minutes}"
+        ${disabled ? 'disabled title="Already booked"' : `onclick="selectSlot(this,${i})"`}
+      >${s.value}</button>`;
+    }).join('');
+
+  window._allSlots   = allSlots;
+  window._bookedMins = bookedMins;
+}
+
+function selectSlot(btn, index) {
+  const allSlots   = window._allSlots   || [];
+  const bookedMins = window._bookedMins || new Set();
+
+  // Nothing selected yet → first click selects 1 slot
+  if (selectedSlots.length === 0) {
+    document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedSlots = [index];
+    document.getElementById('b-timeslot').value = allSlots[index].value;
+    return;
+  }
+
+  // One slot already selected
+  if (selectedSlots.length === 1) {
+    const first = selectedSlots[0];
+
+    // Clicking the same slot again → deselect
+    if (index === first) {
+      btn.classList.remove('selected');
+      selectedSlots = [];
+      document.getElementById('b-timeslot').value = '';
+      return;
+    }
+
+    // Adjacent (before or after) and not booked → extend to 2 hrs
+    if (Math.abs(index - first) === 1) {
+      const lo = Math.min(first, index);
+      const hi = Math.max(first, index);
+      // Make sure the second slot isn't booked
+      if (bookedMins.has(allSlots[lo + 1]?.minutes)) {
+        // Can't extend through a booked slot — treat as fresh single select
+        document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedSlots = [index];
+        document.getElementById('b-timeslot').value = allSlots[index].value;
+        return;
+      }
+      const btns = document.querySelectorAll('.time-slot-btn');
+      btns[lo]?.classList.add('selected');
+      btns[hi]?.classList.add('selected');
+      selectedSlots = [lo, hi];
+      document.getElementById('b-timeslot').value = `${allSlots[lo].value} – ${allSlots[hi].value}`;
+      return;
+    }
+
+    // Non-adjacent → start fresh selection
+    document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedSlots = [index];
+    document.getElementById('b-timeslot').value = allSlots[index].value;
+    return;
+  }
+
+  // Two slots selected → clicking anywhere starts fresh
+  document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedSlots = [index];
+  document.getElementById('b-timeslot').value = allSlots[index].value;
+}
+
+// ─────────────────────────────────────────────
+//  EMAILJS SETTINGS
+// ─────────────────────────────────────────────
+function loadEmailSettings() {
+  const keys = ['ej-pubkey','ej-service','ej-template','ej-admin-email'];
+  keys.forEach(k => {
+    const el = document.getElementById(k);
+    if (el) el.value = localStorage.getItem(k) || '';
+  });
+}
+
+function saveEmailSettings() {
+  const keys = ['ej-pubkey','ej-service','ej-template','ej-admin-email'];
+  keys.forEach(k => {
+    const val = document.getElementById(k)?.value.trim();
+    if (val) localStorage.setItem(k, val);
+    else localStorage.removeItem(k);
+  });
+  document.getElementById('email-settings-msg').innerHTML = '<span style="color:var(--gold);">✓ Email settings saved!</span>';
+  setTimeout(() => { document.getElementById('email-settings-msg').innerHTML = ''; }, 3000);
+}
+
+function testEmail() {
+  const pk  = localStorage.getItem('ej-pubkey');
+  const sid = localStorage.getItem('ej-service');
+  const tid = localStorage.getItem('ej-template');
+  const adm = localStorage.getItem('ej-admin-email');
+  if (!pk || !sid || !tid || !adm) {
+    document.getElementById('email-settings-msg').innerHTML = '<span style="color:#e07070;">Please save your EmailJS settings first.</span>';
+    return;
+  }
+  try {
+    emailjs.init({ publicKey: pk });
+    emailjs.send(sid, tid, {
+      admin_email: adm, client_name: 'Test Client', client_email: 'test@example.com',
+      client_phone: '+1 555-0000', service: 'Gel Manicure',
+      date: 'Monday, January 1, 2025', time_slot: '10:00 AM', notes: 'This is a test booking email.'
+    }).then(() => {
+      document.getElementById('email-settings-msg').innerHTML = '<span style="color:var(--gold);">✓ Test email sent! Check your inbox.</span>';
+    }).catch(e => {
+      document.getElementById('email-settings-msg').innerHTML = `<span style="color:#e07070;">Failed: ${e.text || e.message || 'Check your credentials.'}</span>`;
+    });
+  } catch(e) {
+    document.getElementById('email-settings-msg').innerHTML = `<span style="color:#e07070;">Error: ${e.message}</span>`;
+  }
 }
 
 async function loadBookings() {
@@ -1761,6 +2142,7 @@ document.addEventListener('keydown', function(e) {
 // ─────────────────────────────────────────────
 loadGallery();
 loadServices();
+loadAvailability(); // load config for time slot generation on client side
 
 // Check if already logged in
 sb.auth.getSession().then(({ data }) => {
