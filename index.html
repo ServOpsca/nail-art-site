@@ -1209,11 +1209,11 @@
             <thead>
               <tr>
                 <th>Name</th><th>Email</th><th>Phone</th>
-                <th>Service</th><th>Date</th><th>Notes</th><th>Status</th>
+                <th>Service</th><th>Date</th><th>Time</th><th>Notes</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody id="bookings-tbody">
-              <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted);">Loading…</td></tr>
+              <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1823,18 +1823,22 @@ async function submitBooking() {
   document.getElementById('time-slots-container').innerHTML = '';
 }
 
-function sendBookingEmail({ fname, lname, email, phone, service, date, timeslot, notes }) {
+async function sendBookingEmail({ fname, lname, email, phone, service, date, timeslot, notes }) {
   const pk  = localStorage.getItem('ej-pubkey');
   const sid = localStorage.getItem('ej-service');
   const tid = localStorage.getItem('ej-template');
   const adm = localStorage.getItem('ej-admin-email');
-  if (!pk || !sid || !tid || !adm) return; // EmailJS not configured, skip silently
-
+  if (!pk || !sid || !tid || !adm) {
+    console.warn('EmailJS not configured — skipping email notification.');
+    return;
+  }
   try {
-    emailjs.init({ publicKey: pk });
-    emailjs.send(sid, tid, {
-      admin_email:  adm,
-      client_name:  fname + ' ' + lname,
+    emailjs.init(pk);   // v4 init just takes the public key string directly
+    const result = await emailjs.send(sid, tid, {
+      to_email:     adm,          // standard EmailJS recipient field
+      admin_email:  adm,          // keep as fallback variable in template
+      reply_to:     email,        // reply goes back to client
+      client_name:  (fname + ' ' + lname).trim(),
       client_email: email,
       client_phone: phone || '—',
       service:      service,
@@ -1842,7 +1846,11 @@ function sendBookingEmail({ fname, lname, email, phone, service, date, timeslot,
       time_slot:    timeslot || '—',
       notes:        notes || '—'
     });
-  } catch(e) { console.warn('EmailJS error:', e); }
+    console.log('Booking email sent:', result.status);
+  } catch(e) {
+    console.error('EmailJS send failed:', e);
+    showToast('Booking saved but email failed: ' + (e.text || e.message || 'check EmailJS config'), 'error');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -2063,15 +2071,22 @@ function testEmail() {
     return;
   }
   try {
-    emailjs.init({ publicKey: pk });
+    emailjs.init(pk);  // v4: pass public key string directly
     emailjs.send(sid, tid, {
-      admin_email: adm, client_name: 'Test Client', client_email: 'test@example.com',
-      client_phone: '+1 555-0000', service: 'Gel Manicure',
-      date: 'Monday, January 1, 2025', time_slot: '10:00 AM', notes: 'This is a test booking email.'
+      to_email:     adm,
+      admin_email:  adm,
+      reply_to:     adm,
+      client_name:  'Test Client',
+      client_email: 'test@example.com',
+      client_phone: '+1 555-0000',
+      service:      'Gel Manicure',
+      date:         'Monday, January 1, 2025',
+      time_slot:    '10:00 AM – 11:00 AM',
+      notes:        'This is a test booking email.'
     }).then(() => {
       document.getElementById('email-settings-msg').innerHTML = '<span style="color:var(--gold);">✓ Test email sent! Check your inbox.</span>';
     }).catch(e => {
-      document.getElementById('email-settings-msg').innerHTML = `<span style="color:#e07070;">Failed: ${e.text || e.message || 'Check your credentials.'}</span>`;
+      document.getElementById('email-settings-msg').innerHTML = `<span style="color:#e07070;">Failed: ${e.text || e.message || 'Check Service ID, Template ID & Public Key.'}</span>`;
     });
   } catch(e) {
     document.getElementById('email-settings-msg').innerHTML = `<span style="color:#e07070;">Error: ${e.message}</span>`;
@@ -2082,7 +2097,7 @@ async function loadBookings() {
   const { data } = await sb.from('bookings').select('*').order('created_at', { ascending: false });
   const tbody = document.getElementById('bookings-tbody');
   if (!data || !data.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted);">No bookings yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">No bookings yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = data.map(b => `
@@ -2091,10 +2106,23 @@ async function loadBookings() {
       <td>${escHtml(b.email || '')}</td>
       <td>${escHtml(b.phone || '—')}</td>
       <td>${escHtml(b.service || '')}</td>
-      <td>${b.preferred_date ? new Date(b.preferred_date).toLocaleDateString() : '—'}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(b.notes || '—')}</td>
+      <td>${b.preferred_date ? new Date(b.preferred_date + 'T00:00:00').toLocaleDateString() : '—'}</td>
+      <td style="white-space:nowrap;">${escHtml(b.time_slot || '—')}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(b.notes || '')}">${escHtml(b.notes || '—')}</td>
       <td><span class="status-badge status-${b.status === 'confirmed' ? 'confirmed' : 'new'}">${escHtml(b.status || 'new')}</span></td>
+      <td>
+        <button class="item-delete-btn" style="padding:5px 10px;font-size:0.65rem;"
+          onclick="deleteBooking('${b.id}')">Delete</button>
+      </td>
     </tr>`).join('');
+}
+
+async function deleteBooking(id) {
+  if (!confirm('Delete this booking permanently?')) return;
+  const { error } = await sb.from('bookings').delete().eq('id', id);
+  if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
+  showToast('Booking deleted.');
+  loadBookings();
 }
 
 sb.channel('bookings-changes')
